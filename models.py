@@ -15,6 +15,8 @@ import torch.nn as nn
 """
 BiLSTM (max/mean) encoder
 """ 
+
+
 class BLSTMEncoder(nn.Module):
     def __init__(self, config):
         super(BLSTMEncoder, self).__init__()
@@ -66,6 +68,9 @@ class BLSTMEncoder(nn.Module):
 
         return emb
 
+    def set_glove_path(self, glove_path):
+        self.glove_path = glove_path
+    
     def get_word_dict(self, sentences, tokenize=True):
         # create vocab of words
         word_dict = {}
@@ -79,10 +84,11 @@ class BLSTMEncoder(nn.Module):
         word_dict['</s>'] = ''
         return word_dict
     
-    def get_glove(self, word_dict, glove_path):
+    def get_glove(self, word_dict):
+        assert self.glove_path, 'warning : you need to set glove_path'
         # create word_vec with glove vectors
         word_vec = {}
-        with open(glove_path) as f:
+        with open(self.glove_path) as f:
             for line in f:
                 word, vec = line.split(' ', 1)
                 if word in word_dict:
@@ -91,12 +97,14 @@ class BLSTMEncoder(nn.Module):
         return word_vec
     
     
-    def build_vocab(self, sentences, glove_path, tokenize=True):
+    def build_vocab(self, sentences, tokenize=True):
+        assert self.glove_path, 'warning : you need to set glove_path'
         word_dict = self.get_word_dict(sentences, tokenize)
-        self.word_vec = self.get_glove(word_dict, glove_path)
+        self.word_vec = self.get_glove(word_dict, self.glove_path)
         print 'Vocab size : {0}'.format(len(self.word_vec))
 
-    def update_vocab(self, sentences, glove_path, tokenize=True):
+    def update_vocab(self, sentences, tokenize=True):
+        assert self.glove_path, 'warning : you need to set glove_path'
         assert self.word_vec, 'build vocab before updating it'
         word_dict = self.get_word_dict(sentences, tokenize)
         
@@ -107,7 +115,7 @@ class BLSTMEncoder(nn.Module):
                 
         # udpate vocabulary
         if word_dict:
-            new_word_vec = self.get_glove(word_dict, glove_path)
+            new_word_vec = self.get_glove(word_dict, self.glove_path)
             self.word_vec.update(new_word_vec)
         print 'New vocab size : {0} (added {1} words)'.format(len(self.word_vec), len(new_word_vec))
 
@@ -162,8 +170,60 @@ class BLSTMEncoder(nn.Module):
         print 'Speed : {0} sentences/s ({1} mode)'.format(round(len(embeddings)/(time.time()-tic), 2),\
                                                           'gpu' if self.cuda else 'cpu')
         return embeddings
+    
+    def visualize(self, sent, tokenize=True):
+        if tokenize: from nltk.tokenize import word_tokenize
+        
+        sent = sent.split() if not tokenize else word_tokenize(sent)
+        sent = [[word for word in sent if word in self.word_vec]]
+        print sent
+        if not sent[0]:
+            import warnings
+            warnings.warn('No words in "{0}" (idx={1}) have glove vectors. Replacing by "<s> </s>"..'.format(sentences[i], i))   
+            sent[0] = '<s> </s>'.split()
+        batch = Variable(self.get_batch(sent), volatile=True)
+        
+        init_lstm = Variable(torch.FloatTensor(2, 1, self.enc_lstm_dim).zero_())
+        if self.cuda:
+            init_lstm = init_lstm.cuda()
+            batch = batch.cuda()
+        output = self.enc_lstm(batch, (init_lstm, init_lstm))[0]
+        output, idxs = torch.max(output, 0)
+        #output, idxs = output.squeeze(), idxs.squeeze()
+        idxs = idxs.data.cpu().numpy()
+        argmaxs = [np.sum((idxs==k)) for k in range(len(sent[0]))]
+        
+        # visualize model
+        import matplotlib.pyplot as plt
+        x = range(len(sent[0]))
+        y = [100.0*n/np.sum(argmaxs) for n in argmaxs]
+        fig = plt.figure()
+        plt.xticks(x, sent[0])
+        plt.bar(x, y)
+        plt.ylabel('%')
+        plt.title('Visualisation of words importance')
+        plt.show()
+        
+        return output, idxs
+                             
 
-
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
 """
 BiGRU encoder (first/last hidden states)
 """ 

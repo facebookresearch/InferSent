@@ -346,15 +346,14 @@ Evaluation of trained model on Transfer Tasks (SentEval)
 """
 if params.senteval:
     # define transfer tasks
-    transfer_tasks = ['MR', 'CR']
-    #transfer_tasks = ['MR', 'CR', 'SUBJ', 'MPQA', 'SST', 'TREC', 'SICKRelatedness',\
-    #                          'SICKEntailment', 'MRPC', 'STS14']
+    transfer_tasks = ['MR', 'CR', 'SUBJ', 'MPQA', 'SST', 'TREC', 'SICKRelatedness',\
+                              'SICKEntailment', 'MRPC', 'STS14']
     # define senteval params
-    params_senteval = {'usepytorch':True,
-                       'task_path':PATH_TRANSFER_TASKS,
-                       'seed':params.seed_se,
-                       'batch_size':params.bs_se,
-                       'glove_path':GLOVE_PATH,
+    params_senteval = {'usepytorch': True,
+                       'task_path': PATH_TRANSFER_TASKS,
+                       'seed': params.seed_se,
+                       'batch_size': params.bs_se,
+                       'glove_path': GLOVE_PATH,
                        'verbose': 2,
                        'classifier': 'LogReg'}
     params_senteval = dotdict(params_senteval)
@@ -377,10 +376,11 @@ if params.senteval:
 
     microavg, macroavg, nsamples = 0, 0, 0
     acc_tasks = ['MR', 'CR', 'SUBJ', 'MPQA', 'SST', 'TREC', 'SICKEntailment', 'MRPC', 'STS14']
-    for acc_task in acc_tasks:
-        nsamples += results_transfer[acc_task]['ndev']
-        microavg += results_transfer[acc_task]['devacc'] * results_transfer[acc_task]['ndev']
-        macroavg += results_transfer[acc_task]['devacc']
+    for task in transfer_tasks:
+        if task in acc_tasks:
+            nsamples += results_transfer[task]['ndev']
+            microavg += results_transfer[task]['devacc'] * results_transfer[task]['ndev']
+            macroavg += results_transfer[task]['devacc']
     microavg = microavg / nsamples
     macroavg = macroavg / len(acc_tasks)
 
