@@ -57,30 +57,16 @@ def get_optimizer(s):
 Importing batcher and prepare for SentEval
 """
 
-def batcher(network, batch, params):
+def batcher(batch, params):
     # batch contains list of words
-    X = [torch.LongTensor([params.word2id[w] if w in params.word2id else params.word2id['<p>'] for w in ['<s>'] + s + ['</s>']]) for s in batch]
-    X, X_len = get_batch(X, params.word2id['<p>'])
-    
-    k = X.size(1)  # actual batch size
+    batch = [['<s>'] + s + ['</s>'] for s in batch]
+    sentences = [' '.join(s) for s in batch]
+    embeddings = params.infersent.encode(sentences, bsize=params.batch_size, tokenize=False)
 
-    # forward
-    X = Variable(X, volatile=True).cuda()
-    X_embed = params.lut(X)
-    
-    embeddings = network.encode((X_embed, X_len))
-    
-    return embeddings.data.cpu().numpy()
+    return embeddings
 
 def prepare(params, samples):
-    _, params.word2id = get_dict(samples)
-    params.emb_dim = 300
-    params.eos_index = params.word2id['</s>']
-    params.sos_index = params.word2id['</s>']
-    params.pad_index = params.word2id['<p>']
-    _, params.lut, _ = get_lut_glove('840B.300d', params.word2id)
-    params.lut.cuda()
-    return # prepare puts all of its outputs in params.{}
+    params.infersent.build_vocab([' '.join(s) for s in samples], params.glove_path, tokenize=False)    
 
 class dotdict(dict):
     """ dot.notation access to dictionary attributes """

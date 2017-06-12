@@ -8,6 +8,8 @@ import torch
 import torch.nn as nn
 from torch.autograd import Variable
 
+GLOVE_PATH = "dataset/GloVe/"
+
 
 # Create dictionary
 def get_dict(sentences, threshold=0):
@@ -48,7 +50,76 @@ def get_batch(batch_sentences, index_pad = 1e9 + 2):
     # size : seqlen * bsize
     
     
+def get_batch2(batch, word_vec):
+    # sent in batch in decreasing order of lengths (bsize, max_len, word_dim)
+    lengths = np.array([len(x) for x in batch])
+    max_len = np.max(lengths)
+    embed = np.zeros((max_len, len(batch), 300))
     
+    for i in range(len(batch)):
+        for j in range(len(batch[i])):
+            embed[j, i, :] = word_vec[batch[i][j]]
+
+    return torch.from_numpy(embed).float(), lengths 
+
+
+def get_word_dict(sentences):
+    # create vocab of words
+    word_dict = {}
+    for sent in sentences:
+        for word in sent.split():
+            if word not in word_dict:
+                word_dict[word] = ''
+    word_dict['<s>'] = ''
+    word_dict['</s>'] = ''
+    return word_dict
+
+
+def get_glove(word_dict, glove_path):
+    # create word_vec with glove vectors
+    word_vec = {}
+    with open(glove_path) as f:
+        for line in f:
+            word, vec = line.split(' ', 1)
+            if word in word_dict:
+                word_vec[word] = np.array(list(map(float, vec.split())))
+    print 'Found {0}(/{1}) words with glove vectors'.format(len(word_vec), len(word_dict))
+    return word_vec
+
+
+def build_vocab(sentences, glove_path):
+    word_dict = get_word_dict(sentences)
+    word_vec = get_glove(word_dict, glove_path)
+    print 'Vocab size : {0}'.format(len(word_vec))
+    return word_vec
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # Get lookup-table with GloVe vectors
 def get_lut_glove(glove_type, glove_path, word2id):
     word_emb_dim = int(glove_type.split('.')[1].split('d')[0])
@@ -81,7 +152,6 @@ def get_lut_glove(glove_type, glove_path, word2id):
     print 'GLOVE : Took ' + str(round(time.time()-last_time,2)) + ' seconds.'
     rdm_idx = 0 if len(words_not_found)<8 else randint(0, len(words_not_found) - 1 - 7)
     print 'GLOVE : 7 words in word2id without GloVe vectors : ' + str(words_not_found[rdm_idx:rdm_idx + 7])
-    
     return word_emb_dim, src_embeddings.cuda(), words_not_found
 
 
@@ -104,7 +174,63 @@ def permutation_per_batch(n, batch_size, block_size=8):
     assert len(permutation) == n
     return permutation
 
+
+
+
+
+
+def get_nli2(data_path):
+    s1 = {}
+    s2 = {}
+    target = {}
     
+    dico_label = {'entailment':0,  'neutral':1, 'contradiction':2}
+    
+    for data_type in ['train', 'dev', 'test']:
+        s1[data_type], s2[data_type], target[data_type] = {}, {}, {}
+        s1[data_type]['path'] = os.path.join(data_path, 's1.' + data_type)
+        s2[data_type]['path'] = os.path.join(data_path, 's2.' + data_type)
+        target[data_type]['path'] = os.path.join(data_path, 'labels.' + data_type)
+        
+        s1[data_type]['sent'] = [line.rstrip() for line in open(s1[data_type]['path'], 'r')]
+        s2[data_type]['sent'] = [line.rstrip() for line in open(s2[data_type]['path'], 'r')]
+        target[data_type]['data'] = np.array([dico_label[line.rstrip('\n')] for line in open(target[data_type]['path'], 'r')])
+        
+        assert len(s1[data_type]['sent']) == len(s2[data_type]['sent']) == len(target[data_type]['data'])
+        
+        print '** {0} DATA : Found {1} pairs of {2} sentences.'.format(
+                            data_type.upper(), len(s1[data_type]['sent']), data_type)
+        
+        
+    train = {'s1':s1['train']['sent'], 's2':s2['train']['sent'], 'label':target['train']['data']}
+    dev = {'s1':s1['dev']['sent'], 's2':s2['dev']['sent'], 'label':target['dev']['data']}
+    test  = {'s1':s1['test']['sent'] , 's2':s2['test']['sent'] , 'label':target['test']['data'] }
+    return train, dev, test
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 def get_nli(data_path):
     s1 = {}
     s2 = {}
@@ -129,7 +255,7 @@ def get_nli(data_path):
                                 key=lambda z:(len(z[0]), len(z[1]), z[2]))
         s2[data_type]['sent'] = [x for (x,y,z) in sorted_by_s2]
         s1[data_type]['sent'] = [y for (x,y,z) in sorted_by_s2]
-        target[data_type]['data'] = [z for (x,y,z) in sorted_by_s2]
+        target[data_type]['data'] = np.array([z for (x,y,z) in sorted_by_s2])
         
         
         print '** {0} DATA : Found {1} pairs of {2} sentences.'.format(
@@ -142,8 +268,8 @@ def get_nli(data_path):
     print('** DICTIONARY : %i words in dictionary' % len(id2word))
     
     for data_type in ['train', 'dev', 'test']:
-        s1[data_type]['data'] = [torch.LongTensor([word2id[w] for w in ['<s>'] + s + ['</s>']]) for s in s1[data_type]['sent']]
-        s2[data_type]['data'] = [torch.LongTensor([word2id[w] for w in ['<s>'] + s + ['</s>']]) for s in s2[data_type]['sent']]
+        s1[data_type]['data'] = np.array([torch.LongTensor([word2id[w] for w in ['<s>'] + s + ['</s>']]) for s in s1[data_type]['sent']])
+        s2[data_type]['data'] = np.array([torch.LongTensor([word2id[w] for w in ['<s>'] + s + ['</s>']]) for s in s2[data_type]['sent']])
         assert len(s1[data_type]['data']) == len(s2[data_type]['data'])
         
     train = {'s1':s1['train']['data'], 's2':s2['train']['data'], 'label':target['train']['data']}
