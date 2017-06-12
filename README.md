@@ -41,7 +41,7 @@ where glove_path is the path to the file *'glove.840B.300d.txt'* of glove vector
 
 3) Build the vocabulary of glove vectors (and keep only those needed) : 
 ```python
-infersent.build_vocab(sentences1, glove_path, tokenize=True)
+infersent.build_vocab(sentences1, tokenize=True)
 ```
 where *sentences* (required) is your list of *n* sentences. You can also update your vocabulary with new words using *infersent.update_vocab(sentences, glove_path, tokenize=True)*. 
 
