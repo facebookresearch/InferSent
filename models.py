@@ -1,10 +1,3 @@
-"""
-This script contains the list of encoders
-and a module "NLINet" for NLI
-"""
-
-
-
 import numpy as np
 import time
 
@@ -13,10 +6,8 @@ from torch.autograd import Variable
 import torch.nn as nn
 
 """
-BiLSTM (max/mean) encoder
+InferSent encoder
 """ 
-
-
 class BLSTMEncoder(nn.Module):
     def __init__(self, config):
         super(BLSTMEncoder, self).__init__()
