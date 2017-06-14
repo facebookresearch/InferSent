@@ -1,9 +1,6 @@
 import re
 import inspect
-import torch
 from torch import optim
-from torch.autograd import Variable
-from data import get_dict, get_lut_glove, get_batch
 
 def get_optimizer(s):
     """

@@ -1,7 +1,3 @@
-"""
-This script contains the InferSent model definition
-"""
-
 import numpy as np
 import time
 
@@ -9,10 +5,11 @@ import torch
 from torch.autograd import Variable
 import torch.nn as nn
 
-
 """
 BiLSTM (max/mean) encoder
 """ 
+
+
 class BLSTMEncoder(nn.Module):
     def __init__(self, config):
         super(BLSTMEncoder, self).__init__()
@@ -54,9 +51,19 @@ class BLSTMEncoder(nn.Module):
         idx_unsort = torch.cuda.LongTensor(idx_unsort) if self.cuda else torch.LongTensor(idx_unsort)
         sent_output = sent_output.index_select(1, Variable(idx_unsort))
         
-        emb = torch.max(sent_output, 0)[0].squeeze(0)
+        # Pooling
+        if self.pool_type == "mean":
+            sent_len = Variable(torch.FloatTensor(sent_len)).unsqueeze(1).cuda()
+            emb = torch.sum(sent_output, 0).squeeze(0)
+            emb = emb / sent_len.expand_as(emb)
+        elif self.pool_type == "max":
+            emb = torch.max(sent_output, 0)[0].squeeze(0)
+
         return emb
 
+    def set_glove_path(self, glove_path):
+        self.glove_path = glove_path
+    
     def get_word_dict(self, sentences, tokenize=True):
         # create vocab of words
         word_dict = {}
@@ -68,12 +75,14 @@ class BLSTMEncoder(nn.Module):
                     word_dict[word] = ''
         word_dict['<s>'] = ''
         word_dict['</s>'] = ''
+        word_dict['<p>'] = ''
         return word_dict
     
-    def get_glove(self, word_dict, glove_path):
+    def get_glove(self, word_dict):
+        assert hasattr(self, 'glove_path'), 'warning : you need to set_glove_path(glove_path)'
         # create word_vec with glove vectors
         word_vec = {}
-        with open(glove_path) as f:
+        with open(self.glove_path) as f:
             for line in f:
                 word, vec = line.split(' ', 1)
                 if word in word_dict:
@@ -82,13 +91,15 @@ class BLSTMEncoder(nn.Module):
         return word_vec
     
     
-    def build_vocab(self, sentences, glove_path, tokenize=True):
+    def build_vocab(self, sentences, tokenize=True):
+        assert hasattr(self, 'glove_path'), 'warning : you need to set_glove_path(glove_path)'
         word_dict = self.get_word_dict(sentences, tokenize)
-        self.word_vec = self.get_glove(word_dict, glove_path)
+        self.word_vec = self.get_glove(word_dict)
         print 'Vocab size : {0}'.format(len(self.word_vec))
 
-    def update_vocab(self, sentences, glove_path, tokenize=True):
-        assert self.word_vec, 'build vocab before updating it'
+    def update_vocab(self, sentences, tokenize=True):
+        assert hasattr(self, 'glove_path'), 'warning : you need to set_glove_path(glove_path)'
+        assert hasattr(self, 'word_vec'), 'build_vocab before updating it'
         word_dict = self.get_word_dict(sentences, tokenize)
         
         # keep only new words
@@ -98,7 +109,7 @@ class BLSTMEncoder(nn.Module):
                 
         # udpate vocabulary
         if word_dict:
-            new_word_vec = self.get_glove(word_dict, glove_path)
+            new_word_vec = self.get_glove(word_dict)
             self.word_vec.update(new_word_vec)
         print 'New vocab size : {0} (added {1} words)'.format(len(self.word_vec), len(new_word_vec))
 
@@ -114,7 +125,7 @@ class BLSTMEncoder(nn.Module):
         return torch.FloatTensor(embed)
     
     
-    def encode(self, sentences, bsize=64, tokenize=True):
+    def encode(self, sentences, bsize=64, tokenize=True, verbose=False):
         tic = time.time()
         if tokenize: from nltk.tokenize import word_tokenize
         sentences = [s.split() if not tokenize else word_tokenize(s) for s in sentences]
@@ -122,7 +133,7 @@ class BLSTMEncoder(nn.Module):
         
         # filters words without glove vectors
         for i in range(len(sentences)):
-            s_f = [word for word in sentences[i] if word in self.word_vec]
+            s_f = [word if word in self.word_vec else '<p>' for word in sentences[i]]
             if not s_f:
                 import warnings
                 warnings.warn('No words in "{0}" (idx={1}) have glove vectors. Replacing by "</s>"..'.format(sentences[i], i))
@@ -131,7 +142,8 @@ class BLSTMEncoder(nn.Module):
 
         lengths = np.array([len(s) for s in sentences])
         n_wk = np.sum(lengths)
-        print 'Nb words kept : {0}/{1} ({2} %)'.format(n_wk, n_w, round((100.0 * n_wk) / n_w, 2))
+        if verbose:
+            print 'Nb words kept : {0}/{1} ({2} %)'.format(n_wk, n_w, round((100.0 * n_wk) / n_w, 2))
                                                   
         # sort by decreasing length
         lengths, idx_sort = np.sort(lengths)[::-1], np.argsort(-lengths)
@@ -150,8 +162,9 @@ class BLSTMEncoder(nn.Module):
         idx_unsort = np.argsort(idx_sort)
         embeddings = embeddings[idx_unsort]
         
-        print 'Speed : {0} sentences/s ({1} mode)'.format(round(len(embeddings)/(time.time()-tic), 2),\
-                                                          'gpu' if self.cuda else 'cpu')
+        if verbose:
+            print 'Speed : {0} sentences/s ({1} mode)'.format(round(len(embeddings)/(time.time()-tic), 2),\
+                                                              'gpu' if self.cuda else 'cpu')
         return embeddings
     
     def visualize(self, sent, tokenize=True):
@@ -189,6 +202,3 @@ class BLSTMEncoder(nn.Module):
         
         return output, idxs
                              
-
-        
-        

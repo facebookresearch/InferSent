@@ -9,21 +9,12 @@ import torch
 from torch.autograd import Variable
 import torch.nn as nn
 
-from data import get_nli, get_nli2, get_batch, get_batch2, get_lut_glove, permutation_per_batch, build_vocab
+from data import get_nli, get_batch, build_vocab
 from mutils import get_optimizer, dotdict
 from models import NLINet
 
 
 GLOVE_PATH = "dataset/GloVe/glove.840B.300d.txt"
-PATH_SENTEVAL = "/home/aconneau/notebooks/senteval/" # needed if params.senteval = True
-PATH_TRANSFER_TASKS = "/home/aconneau/notebooks/senteval/data/senteval_data/" # needed if params.senteval = True
-
-
-sys.path.insert(0, PATH_SENTEVAL)
-if PATH_SENTEVAL != ".": import senteval
-# from models.validation import InnerKFoldClassifier
-from mutils import batcher, prepare # batcher/prepare for NLINet-SentEval
-
 
 
 parser = argparse.ArgumentParser(description='NLI training')
@@ -53,18 +44,10 @@ parser.add_argument("--fc_dim", type=int, default=512, help="nhid of fc layers")
 parser.add_argument("--n_classes", type=int, default=3, help="entailment/neutral/contradiction")
 parser.add_argument("--pool_type", type=str, default='max', help="max or mean")
 
-# data
-parser.add_argument("--data_shuffling", type=str, default='rand', help="rand or block")
-
 # gpu
 parser.add_argument("--gpu_id", type=int, default=3, help="GPU ID")
 parser.add_argument("--seed", type=int, default=1111, help="seed")
 
-# senteval
-parser.add_argument("--senteval", type=bool, default=True, help="use SentEval")
-parser.add_argument("--bs_se", type=int, default=64, help="senteval batch size")
-parser.add_argument("--seed_se", type=int, default=1111, help="senteval seed")
-parser.add_argument("--pytorch_se", type=bool, default=True, help="use pytorch in senteval")
 
 params, _ = parser.parse_known_args()
 
@@ -86,22 +69,15 @@ torch.cuda.manual_seed(params.seed)
 """
 DATA
 """
-train, valid, test = get_nli2(params.nlipath)
+train, valid, test = get_nli(params.nlipath)
 word_vec = build_vocab(train['s1'] + train['s2'] + valid['s1'] + valid['s2'] + test['s1'] + test['s2'], GLOVE_PATH)
 
 for split in ['s1', 's2']:
-    train[split] = np.array([['<s>'] + [word for word in sent.split() if word in word_vec] + ['</s>'] for sent in train[split]])
-    valid[split] = [['<s>'] + [word for word in sent.split() if word in word_vec] + ['</s>'] for sent in valid[split]]
-    test[split] = np.array([['<s>'] + [word for word in sent.split() if word in word_vec] + ['</s>'] for sent in test[split]])
+    for data_type in [train, valid, test]:
+        eval(data_type)[split] = np.array([['<s>'] + [word for word in sent.split() if word in word_vec] +\
+                                          ['</s>'] for sent in eval(data_type)[split]])        
 
 params.word_emb_dim = 300
-
-
-if False:
-    train, valid, test, id2word, word2id = get_nli(params.nlipath)
-    train = valid
-    glove_type = '840B.300d' # standard
-    params.word_emb_dim, src_embeddings, _ = get_lut_glove(glove_type, GLOVE_PATH, word2id)
 
 
 """
@@ -170,13 +146,8 @@ def trainepoch(epoch):
     last_time = time.time()
     correct = 0.
     # shuffle the data
-    if params.data_shuffling == 'rand':
-        print('shuffling random')
-        permutation = np.random.permutation(len(train['s1']))
-    elif params.data_shuffling == 'block':
-        print('shuffling block')
-        permutation = permutation_per_batch(len(train['s1']), params.batch_size, block_size=500)
-    
+    permutation = np.random.permutation(len(train['s1']))
+
     s1 = train['s1'][permutation]
     s2 = train['s2'][permutation]
     target = train['label'][permutation]
@@ -188,24 +159,11 @@ def trainepoch(epoch):
 
     for stidx in range(0, len(s1), params.batch_size):
         # prepare batch
-        if False:
-            s1_batch, s1_len = get_batch(s1[stidx:stidx + params.batch_size], index_pad)
-            s1_batch = Variable(s1_batch, volatile = True).cuda()
-            s2_batch, s2_len = get_batch(s2[stidx:stidx + params.batch_size], index_pad)
-            s2_batch = Variable(s2_batch, volatile = True).cuda()
-            tgt_batch = Variable(torch.LongTensor(target[stidx:stidx + params.batch_size])).cuda()
-            k = s1_batch.size(1)  # actual batch size
-
-            # get batch of embeddings
-            s1_batch = Variable(src_embeddings(s1_batch).data)
-            s2_batch = Variable(src_embeddings(s2_batch).data)
-
-        if True:
-            s1_batch, s1_len = get_batch2(s1[stidx:stidx + params.batch_size], word_vec)
-            s2_batch, s2_len = get_batch2(s2[stidx:stidx + params.batch_size], word_vec)
-            s1_batch, s2_batch = Variable(s1_batch.cuda()), Variable(s2_batch.cuda())
-            tgt_batch = Variable(torch.LongTensor(target[stidx:stidx + params.batch_size])).cuda()
-            k = s1_batch.size(1)  # actual batch size
+        s1_batch, s1_len = get_batch(s1[stidx:stidx + params.batch_size], word_vec)
+        s2_batch, s2_len = get_batch(s2[stidx:stidx + params.batch_size], word_vec)
+        s1_batch, s2_batch = Variable(s1_batch.cuda()), Variable(s2_batch.cuda())
+        tgt_batch = Variable(torch.LongTensor(target[stidx:stidx + params.batch_size])).cuda()
+        k = s1_batch.size(1)  # actual batch size
             
         # model forward
         output = nli_net((s1_batch, s1_len), (s2_batch, s2_len))
@@ -268,23 +226,11 @@ def evaluate(epoch, eval_type='valid', final_eval=False):
 
     for i in range(0, len(s1), params.batch_size):
         # prepare batch
-        if False:
-            s1_batch, s1_len = get_batch(s1[i:i + params.batch_size], index_pad)
-            s1_batch = Variable(s1_batch, volatile = True).cuda()
-            s2_batch, s2_len = get_batch(s2[i:i + params.batch_size], index_pad)
-            s2_batch = Variable(s2_batch, volatile = True).cuda()
-            tgt_batch = Variable(torch.LongTensor(target[i:i + params.batch_size])).cuda()
-            k =  s1_batch.size(1)  # actual batch size
-
-            # get batch of embeddings
-            s1_batch = Variable(src_embeddings(s1_batch).data, volatile = True)
-            s2_batch = Variable(src_embeddings(s2_batch).data, volatile = True)
-        if True:
-            s1_batch, s1_len = get_batch2(s1[i:i + params.batch_size], word_vec)
-            s2_batch, s2_len = get_batch2(s2[i:i + params.batch_size], word_vec)
-            s1_batch, s2_batch = Variable(s1_batch.cuda()), Variable(s2_batch.cuda())
-            tgt_batch = Variable(torch.LongTensor(target[i:i + params.batch_size])).cuda()
-            k = s1_batch.size(1)  # actual batch size
+        s1_batch, s1_len = get_batch(s1[i:i + params.batch_size], word_vec)
+        s2_batch, s2_len = get_batch(s2[i:i + params.batch_size], word_vec)
+        s1_batch, s2_batch = Variable(s1_batch.cuda()), Variable(s2_batch.cuda())
+        tgt_batch = Variable(torch.LongTensor(target[i:i + params.batch_size])).cuda()
+        k = s1_batch.size(1)  # actual batch size
             
             
         # model forward
@@ -338,51 +284,3 @@ nli_net = torch.load(os.path.join(params.outputdir, params.outputmodelname))
 print '\nTEST : Epoch {0}'.format(epoch)
 evaluate(1e6, 'valid', True)
 evaluate(0, 'test', True)
-
-
-
-"""
-Evaluation of trained model on Transfer Tasks (SentEval)
-"""
-if params.senteval:
-    # define transfer tasks
-    transfer_tasks = ['MR', 'CR', 'SUBJ', 'MPQA', 'SST', 'TREC', 'SICKRelatedness',\
-                              'SICKEntailment', 'MRPC', 'STS14']
-    # define senteval params
-    params_senteval = {'usepytorch': True,
-                       'task_path': PATH_TRANSFER_TASKS,
-                       'seed': params.seed_se,
-                       'batch_size': params.bs_se,
-                       'glove_path': GLOVE_PATH,
-                       'verbose': 2,
-                       'classifier': 'LogReg'}
-    params_senteval = dotdict(params_senteval)
-
-
-    # set seed
-    np.random.seed(params.seed)
-    torch.manual_seed(params.seed)
-    torch.cuda.manual_seed(params.seed)
-    
-    params_senteval.infersent = nli_net.encoder
-    se = senteval.SentEval(batcher, prepare, params_senteval)
-    results_transfer = se.eval(transfer_tasks)
-    
-    print '\n\n*** Results on transfer tasks ***\n'
-    print results_transfer
-
-    for key in results_transfer:
-        print 'togrep', key, results_transfer[key]
-
-    microavg, macroavg, nsamples = 0, 0, 0
-    acc_tasks = ['MR', 'CR', 'SUBJ', 'MPQA', 'SST', 'TREC', 'SICKEntailment', 'MRPC', 'STS14']
-    for task in transfer_tasks:
-        if task in acc_tasks:
-            nsamples += results_transfer[task]['ndev']
-            microavg += results_transfer[task]['devacc'] * results_transfer[task]['ndev']
-            macroavg += results_transfer[task]['devacc']
-    microavg = microavg / nsamples
-    macroavg = macroavg / len(acc_tasks)
-
-    print 'to grep : Micro avg : {0}; Macro avg : {1}'.format(microavg, macroavg)
-
