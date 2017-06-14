@@ -63,16 +63,14 @@ infersent.visualize('A man playing an instrument.', tokenize=True)
 
 
 ## Train model on SNLI
-To reproduce our results on [SNLI](https://nlp.stanford.edu/projects/snli/), set **GLOVE_PATH** in *train_nli.py* and run:
+To reproduce our results on [SNLI](https://nlp.stanford.edu/projects/snli/), set **GLOVE_PATH** in *train_nli.py*, then run:
 ```bash
 python train_nli.py
 ```
 You should obtain a test accuracy around [84.5](https://nlp.stanford.edu/projects/snli/) with our BiLSTM-max.
 
 ## Reproduce our results on transfer tasks
-To reproduce our results on transfer tasks, you need to clone [SentEval](https://github.com/aconneau/SentEval) and 
-
-Clone [SentEval](https://github.com/aconneau/SentEval) and set **PATH_SENTEVAL**, **PATH_TRANSFER_TASKS** in *evaluate_model.py*.
+To reproduce our results on transfer tasks, clone [SentEval](https://github.com/aconneau/SentEval) and set **PATH_SENTEVAL**, **PATH_TRANSFER_TASKS** in *evaluate_model.py*, then run:
 ```bash
 python evaluate_model.py
 ```
