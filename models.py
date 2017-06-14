@@ -135,7 +135,7 @@ class BLSTMEncoder(nn.Module):
     def encode(self, sentences, bsize=64, tokenize=True, verbose=False):
         tic = time.time()
         if tokenize: from nltk.tokenize import word_tokenize
-        sentences = [s.split() if not tokenize else word_tokenize(s) for s in sentences]
+        sentences = [['<s>']+s.split()+['</s>'] if not tokenize else ['<s>']+word_tokenize(s)+['</s>'] for s in sentences]
         n_w = np.sum([len(x) for x in sentences])
         
         # filters words without glove vectors
@@ -178,12 +178,11 @@ class BLSTMEncoder(nn.Module):
         if tokenize: from nltk.tokenize import word_tokenize
         
         sent = sent.split() if not tokenize else word_tokenize(sent)
-        sent = [[word for word in sent if word in self.word_vec]]
+        sent = [['<s>'] + [word for word in sent if word in self.word_vec] + ['</s>']]
         print sent
-        if not sent[0]:
+        if ' '.join(sent[0]) == '<s> </s>':
             import warnings
             warnings.warn('No words in "{0}" (idx={1}) have glove vectors. Replacing by "<s> </s>"..'.format(sentences[i], i))   
-            sent[0] = '<s> </s>'.split()
         batch = Variable(self.get_batch(sent), volatile=True)
         
         init_lstm = Variable(torch.FloatTensor(2, 1, self.enc_lstm_dim).zero_())
