@@ -3,7 +3,7 @@
 
 *InferSent* encoder and training code from the paper [*Supervised Learning of Universal Sentence Representations from Natural Language Inference Data*](https://arxiv.org/abs/1705.02364).
 
-In this repo, we provide our pre-trained sentence encoder that outperforms previous approaches when used as features for many different tasks.
+In this repo, we provide our pre-trained sentence encoder that outperforms previous approaches when used as features for many different tasks. See [SentEval](https://github.com/aconneau/SentEval) for our sentence embeddings evaluation tool.
 
 ## Dependencies
 
@@ -69,7 +69,7 @@ python train_nli.py
 ```
 You should obtain a test accuracy around [84.5](https://nlp.stanford.edu/projects/snli/) with our BiLSTM-max.
 
-## Reproduce results on transfer tasks
+## Reproduce our results on transfer tasks
 To reproduce our results on transfer tasks, you need to clone [SentEval](https://github.com/aconneau/SentEval) and 
 
 Clone [SentEval](https://github.com/aconneau/SentEval) and set **PATH_SENTEVAL**, **PATH_TRANSFER_TASKS** in *evaluate_model.py*.
