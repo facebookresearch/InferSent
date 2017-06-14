@@ -46,7 +46,7 @@ parser.add_argument("--max_norm", type=float, default=5., help="max norm (grad c
 
 #model
 parser.add_argument("--encoder_type", type=str, default='BLSTMEncoder', help="see list of encoders")
-parser.add_argument("--enc_lstm_dim", type=int, default=256, help="encoder nhid dimension")
+parser.add_argument("--enc_lstm_dim", type=int, default=2048, help="encoder nhid dimension")
 parser.add_argument("--n_enc_layers", type=int, default=1, help="encoder num layers")
 parser.add_argument("--fc_dim", type=int, default=512, help="nhid of fc layers")
 parser.add_argument("--n_classes", type=int, default=3, help="entailment/neutral/contradiction")
@@ -81,7 +81,7 @@ train, valid, test = get_nli(params.nlipath)
 word_vec = build_vocab(train['s1'] + train['s2'] + valid['s1'] + valid['s2'] + test['s1'] + test['s2'], GLOVE_PATH)
 
 for split in ['s1', 's2']:
-    for data_type in [train, valid, test]:
+    for data_type in ['train', 'valid', 'test']:
         eval(data_type)[split] = np.array([['<s>'] + [word for word in sent.split() if word in word_vec] +\
                                           ['</s>'] for sent in eval(data_type)[split]])        
 
