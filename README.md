@@ -78,7 +78,7 @@ python evaluate_model.py
 
 ## References
 
-Please cite [1](https://arxiv.org/abs/1705.02364) if using this code for evaluating sentence embedding methods.
+Please cite [1](https://arxiv.org/abs/1705.02364) if you use this code for sentence embeddings or NLI.
 
 ### Supervised Learning of Universal Sentence Representations from Natural Language Inference Data
 
