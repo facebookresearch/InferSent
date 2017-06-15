@@ -7,13 +7,13 @@ In this repo, we provide our pre-trained sentence encoder that outperforms previ
 
 ## Dependencies
 
-This code is written in python. The dependencies are :
+This code is written in python. The dependencies are:
 
 * Python 2.7 (with recent versions of [NumPy](http://www.numpy.org/)/[SciPy](http://www.scipy.org/))
 * [Pytorch](http://pytorch.org/) >= 0.12
 
 ## Download datasets
-To get the SNLI and MultiNLI datasets (and GloVe), run (in dataset/) :
+To get the SNLI and MultiNLI datasets (and GloVe), run (in dataset/):
 ```bash
 ./get_data.bash
 ```
@@ -26,21 +26,21 @@ This will download and preprocess SNLI/MultiNLI, and put them in data/senteval_d
 curl -Lo encoder/infersent.pickle https://s3.amazonaws.com/senteval/infersent/infersent.pickle
 ```
 
-1) Load our pre-trained infersent model (in encoder/) :
+1) Load our pre-trained infersent model (in encoder/):
 ```python
 import torch
 infersent = torch.load('infersent.pickle')
 ```
-Note : you need the file "models.py" that provides the definition of the model to load it.
+Note: you need the file "models.py" that provides the definition of the model to load it.
 
-2) Set GloVe path for the model : 
+2) Set GloVe path for the model: 
 ```python
 infersent.set_glove_path(glove_path)
 ```
 where glove_path is the path to the file *'glove.840B.300d.txt'* of glove vectors with which our model was trained. Note that using [GloVe](https://nlp.stanford.edu/projects/glove/) vectors allows to have a coverage of more than 2 million english words.
 
 
-3) Build the vocabulary of glove vectors (i.e keep only those needed) : 
+3) Build the vocabulary of glove vectors (i.e keep only those needed): 
 ```python
 infersent.build_vocab(sentences, tokenize=True)
 ```
@@ -48,13 +48,13 @@ where *sentences* (required) is your list of *n* sentences. You can also update 
 
 If your sentences are not tokenized, the *tokenize* option (default: True) will use *NLTK 3* to preprocess it.
 
-4) Encode your sentences :
+4) Encode your sentences:
 ```python
 infersent.encode(sentences, tokenize=True)
 ```
 This will output an numpy array with *n* vectors of dimension **4096** (dimension of the infersent embeddings), which are our general-purpose sentence embeddings.
 
-5) Visualize the value that infersent attributes to each word (~hidden state h_t of the BiLSTM) :
+5) Visualize the value that infersent attributes to each word:
 ```python
 infersent.visualize('A man plays an instrument.', tokenize=True)
 ```
