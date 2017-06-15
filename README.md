@@ -56,7 +56,7 @@ This will output an numpy array with *n* vectors of dimension **4096** (dimensio
 
 5) Visualize the value that infersent attributes to each word (~hidden state h_t of the BiLSTM) :
 ```python
-infersent.visualize('A man playing an instrument.', tokenize=True)
+infersent.visualize('A man plays an instrument.', tokenize=True)
 ```
 
 ![Model](https://s3.amazonaws.com/senteval/infersent/visualization.png)
