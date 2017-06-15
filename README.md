@@ -11,6 +11,7 @@ This code is written in python. The dependencies are:
 
 * Python 2.7 (with recent versions of [NumPy](http://www.numpy.org/)/[SciPy](http://www.scipy.org/))
 * [Pytorch](http://pytorch.org/) >= 0.12
+* NLTK 3
 
 ## Download datasets
 To get the SNLI and MultiNLI datasets (and GloVe), run (in dataset/):
