@@ -22,15 +22,16 @@ This will download and preprocess SNLI/MultiNLI, and put them in data/senteval_d
 
 
 ## Use InferSent sentence encoder
-0) Download and load our model
+0) Download and load our model train on allnli (best) or snli.
 ```bash
-curl -Lo encoder/infersent.pickle https://s3.amazonaws.com/senteval/infersent/infersent.pickle
+curl -Lo encoder/infersent.allnli.pickle https://s3.amazonaws.com/senteval/infersent/infersent.allnli.pickle
+curl -Lo encoder/infersent.snli.pickle https://s3.amazonaws.com/senteval/infersent/infersent.snli.pickle
 ```
 
 1) Load our pre-trained infersent model (in encoder/):
 ```python
 import torch
-infersent = torch.load('infersent.pickle')
+infersent = torch.load('infersent.allnli.pickle')
 ```
 Note: you need the file "models.py" that provides the definition of the model to load it.
 
