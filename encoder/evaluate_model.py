@@ -60,7 +60,6 @@ transfer_tasks = ['MR', 'CR', 'SUBJ', 'MPQA', 'SST', 'TREC', 'SICKRelatedness',\
 # define senteval params
 params_senteval = dotdict({'usepytorch': True,
                            'task_path': PATH_TRANSFER_TASKS,
-                           'glove_path': GLOVE_PATH,
                            })
 
 # Load model

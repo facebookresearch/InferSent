@@ -54,7 +54,7 @@ parser.add_argument("--pool_type", type=str, default='max', help="max or mean")
 
 # gpu
 parser.add_argument("--gpu_id", type=int, default=3, help="GPU ID")
-parser.add_argument("--seed", type=int, default=1111, help="seed")
+parser.add_argument("--seed", type=int, default=1234, help="seed")
 
 
 params, _ = parser.parse_known_args()
@@ -292,3 +292,7 @@ nli_net = torch.load(os.path.join(params.outputdir, params.outputmodelname))
 print '\nTEST : Epoch {0}'.format(epoch)
 evaluate(1e6, 'valid', True)
 evaluate(0, 'test', True)
+
+# Save encoder instead of full model
+torch.save(nli_net.encoder, os.path.join(params.outputdir, params.outputmodelname))
+
