@@ -38,7 +38,7 @@ class BLSTMEncoder(nn.Module):
         sent_len, idx_sort = np.sort(sent_len)[::-1], np.argsort(-sent_len)
         idx_unsort = np.argsort(idx_sort)
         
-        idx_sort = torch.cuda.LongTensor(idx_sort) if self.use_cuda else torch.LongTensor(idx_sort)
+        idx_sort = torch.from_numpy(idx_sort).cuda() if self.use_cuda else torch.from_numpy(idx_sort)
         sent = sent.index_select(1, Variable(idx_sort))
         
         # Handling padding in Recurrent Networks
@@ -47,7 +47,7 @@ class BLSTMEncoder(nn.Module):
         sent_output = nn.utils.rnn.pad_packed_sequence(sent_output)[0]
         
         # Un-sort by length
-        idx_unsort = torch.cuda.LongTensor(idx_unsort) if self.use_cuda else torch.LongTensor(idx_unsort)
+        idx_unsort = torch.from_numpy(idx_unsort).cuda() if self.use_cuda else torch.from_numpy(idx_sort)
         sent_output = sent_output.index_select(1, Variable(idx_unsort))
         
         # Pooling
