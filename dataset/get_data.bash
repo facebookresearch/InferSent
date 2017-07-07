@@ -17,17 +17,14 @@ glovepath='http://nlp.stanford.edu/data/glove.840B.300d.zip'
 echo $glovepath
 mkdir GloVe
 curl -LO $glovepath
-unzip glove.840B.300d.zip -d GloVe/
-rm glove.840B.300d.zip
+tar xzvf glove.840B.300d.zip -C GloVe/ && rm glove.840B.300d.zip # don't rm if there was a failure unzipping; download takes a while
 
 
 
 ### download SNLI
 mkdir SNLI
 curl -o SNLI/snli_1.0.zip $SNLI
-unzip SNLI/snli_1.0.zip -d SNLI
-rm SNLI/snli_1.0.zip
-rm -r SNLI/__MACOSX
+tar xzvf SNLI/snli_1.0.zip -C SNLI && rm SNLI/snli_1.0.zip && rm -r SNLI/__MACOSX
 
 for split in train dev test
 do
@@ -45,9 +42,7 @@ rm -r SNLI/snli_1.0
 # Test set not available yet : we define dev set as the "matched" set and the test set as the "mismatched"
 mkdir MultiNLI
 curl -o MultiNLI/multinli_0.9.zip $MultiNLI
-unzip MultiNLI/multinli_0.9.zip -d MultiNLI
-rm MultiNLI/multinli_0.9.zip
-rm -r MultiNLI/__MACOSX
+tar xzvf MultiNLI/multinli_0.9.zip -C MultiNLI && rm MultiNLI/multinli_0.9.zip && rm -r MultiNLI/__MACOSX
 
 
 mv MultiNLI/multinli_0.9/multinli_0.9_train.txt MultiNLI/train.multinli.txt
