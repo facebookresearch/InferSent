@@ -23,9 +23,13 @@ This will download GloVe and preprocess SNLI/MultiNLI data/senteval_data.
 ## Use our sentence encoder
 See [**encoder/play.ipynb**](https://github.com/facebookresearch/InferSent/blob/master/encoder/play.ipynb) for an example.
 
-*0) Download our model trained on AllNLI (SNLI and MultiNLI) [147MB]:*
+*0.1) Download our model trained on AllNLI (SNLI and MultiNLI) [147MB]:*
 ```bash
 curl -Lo encoder/infersent.allnli.pickle https://s3.amazonaws.com/senteval/infersent/infersent.allnli.pickle
+```
+
+*0.2) Ensure that nltk tokenizers have been downloaded locally*
+```python -m nltk.downloader all
 ```
 
 *1) Load our pre-trained model (in encoder/):*
