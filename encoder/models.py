@@ -47,7 +47,7 @@ class BLSTMEncoder(nn.Module):
         sent_output = nn.utils.rnn.pad_packed_sequence(sent_output)[0]
         
         # Un-sort by length
-        idx_unsort = torch.from_numpy(idx_unsort).cuda() if self.use_cuda else torch.from_numpy(idx_sort)
+        idx_unsort = torch.from_numpy(idx_unsort).cuda() if self.use_cuda else torch.from_numpy(idx_unsort)
         sent_output = sent_output.index_select(1, Variable(idx_unsort))
         
         # Pooling
