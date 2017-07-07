@@ -29,7 +29,8 @@ curl -Lo encoder/infersent.allnli.pickle https://s3.amazonaws.com/senteval/infer
 ```
 
 *0.2) Ensure that nltk tokenizers have been downloaded locally*
-```python -m nltk.downloader all
+```bash
+python -m nltk.downloader all
 ```
 
 *1) Load our pre-trained model (in encoder/):*
