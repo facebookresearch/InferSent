@@ -16,8 +16,8 @@ from xutils import dotdict
 
 
 GLOVE_PATH = "../dataset/GloVe/glove.840B.300d.txt"
-PATH_SENTEVAL = "/home/aconneau/notebooks/SentEval/"
-PATH_TRANSFER_TASKS = "/home/aconneau/notebooks/SentEval/data/senteval_data/"
+PATH_SENTEVAL = ""
+PATH_TRANSFER_TASKS = ""
 
 assert os.path.isfile(GLOVE_PATH) and PATH_SENTEVAL and PATH_TRANSFER_TASKS, 'Set PATHs'
 
@@ -37,7 +37,7 @@ torch.cuda.set_device(params.gpu_id)
 def prepare(params, samples):
     params.infersent.build_vocab([' '.join(s) for s in samples], tokenize=False)  
     
-def batcher(batch, params):
+def batcher(params, batch):
     # batch contains list of words
     sentences = [' '.join(s) for s in batch]
     embeddings = params.infersent.encode(sentences, bsize=params.batch_size, tokenize=False)
@@ -65,7 +65,7 @@ if __name__ == "__main__":
     params_senteval.infersent = torch.load(params.modelpath)
     params_senteval.infersent.set_glove_path(GLOVE_PATH)
 
-    se = senteval.SentEval(batcher, prepare, params_senteval)
+    se = senteval.SentEval(params_senteval, batcher, prepare)
     results_transfer = se.eval(transfer_tasks)
 
     print(results_transfer)
