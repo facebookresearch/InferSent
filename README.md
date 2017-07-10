@@ -17,23 +17,33 @@ To get GloVe, SNLI and MultiNLI [2GB, 90MB, 216MB], run (in dataset/):
 ```bash
 ./get_data.bash
 ```
-This will download GloVe and preprocess SNLI/MultiNLI data/senteval_data.
+This will download GloVe and preprocess SNLI/MultiNLI datasets.
 
 
 ## Use our sentence encoder
 See [**encoder/play.ipynb**](https://github.com/facebookresearch/InferSent/blob/master/encoder/play.ipynb) for an example.
 
-*0) Download our model trained on AllNLI (SNLI and MultiNLI) [147MB]:*
+*0.0) Download our model trained on AllNLI (SNLI and MultiNLI) [147MB]:*
 ```bash
 curl -Lo encoder/infersent.allnli.pickle https://s3.amazonaws.com/senteval/infersent/infersent.allnli.pickle
+```
+
+*0.1) Make sure you have the NLTK tokenizer by running the following once:*
+```python
+import nltk
+nltk.download('punkt')
 ```
 
 *1) Load our pre-trained model (in encoder/):*
 ```python
 import torch
+# if you are on GPU (encoding ~1000 sentences/s, default)
 infersent = torch.load('infersent.allnli.pickle')
+# if you are on CPU (~40 sentences/s)
+infersent = torch.load('infersent.allnli.pickle', map_location=lambda storage, loc: storage)
+infersent.use_cuda = False
 ```
-Note: to load it, you need the file "models.py" (in encoder/) that provides the definition of the model.
+Note: To load the model, you need "encoder/models.py" in your working directory.
 
 *2) Set GloVe path for the model:*
 ```python
@@ -46,7 +56,7 @@ where *glove_path* is the path to *'glove.840B.300d.txt'*, containing glove vect
 ```python
 infersent.build_vocab(sentences, tokenize=True)
 ```
-where *sentences* is your list of **n** sentences. You can update your vocabulary using *infersent.update_vocab(sentences)*, or directly load the **K** most common words with *infersent.build_vocab_k_words(K=100000)*. If **tokenize** is True (by default), sentences will be tokenized using NTLK. Use *nltk.download('punkt')* once to download the NLTK tokenizer.
+where *sentences* is your list of **n** sentences. You can update your vocabulary using *infersent.update_vocab(sentences)*, or directly load the **K** most common words with *infersent.build_vocab_k_words(K=100000)*. If **tokenize** is True (by default), sentences will be tokenized using NTLK.
 
 *4) Encode your sentences (list of *n* sentences):*
 ```python
