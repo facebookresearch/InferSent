@@ -21,7 +21,8 @@ This will download GloVe and preprocess SNLI/MultiNLI datasets.
 
 
 ## Use our sentence encoder
-See [**encoder/play.ipynb**](https://github.com/facebookresearch/InferSent/blob/master/encoder/play.ipynb) for an example.
+We provide a simple interface to encode english sentences. See [**encoder/play.ipynb**](https://github.com/facebookresearch/InferSent/blob/master/encoder/play.ipynb)
+for a practical example. Get started with the following steps:
 
 *0.0) Download our model trained on AllNLI (SNLI and MultiNLI) [147MB]:*
 ```bash
@@ -56,7 +57,8 @@ where *glove_path* is the path to *'glove.840B.300d.txt'*, containing glove vect
 ```python
 infersent.build_vocab(sentences, tokenize=True)
 ```
-where *sentences* is your list of **n** sentences. You can update your vocabulary using *infersent.update_vocab(sentences)*, or directly load the **K** most common words with *infersent.build_vocab_k_words(K=100000)*. If **tokenize** is True (by default), sentences will be tokenized using NTLK.
+where *sentences* is your list of **n** sentences. You can update your vocabulary using *infersent.update_vocab(sentences)*, or directly load the **K** most common english words with *infersent.build_vocab_k_words(K=100000)*.
+If **tokenize** is True (by default), sentences will be tokenized using NTLK.
 
 *4) Encode your sentences (list of *n* sentences):*
 ```python
