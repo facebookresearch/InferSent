@@ -24,7 +24,7 @@ rm glove.840B.300d.zip
 
 ### download SNLI
 mkdir SNLI
-curl -o SNLI/snli_1.0.zip $SNLI
+curl -Lo SNLI/snli_1.0.zip $SNLI
 unzip SNLI/snli_1.0.zip -d SNLI
 rm SNLI/snli_1.0.zip
 rm -r SNLI/__MACOSX
@@ -44,7 +44,7 @@ rm -r SNLI/snli_1.0
 # MultiNLI
 # Test set not available yet : we define dev set as the "matched" set and the test set as the "mismatched"
 mkdir MultiNLI
-curl -o MultiNLI/multinli_0.9.zip $MultiNLI
+curl -Lo MultiNLI/multinli_0.9.zip $MultiNLI
 unzip MultiNLI/multinli_0.9.zip -d MultiNLI
 rm MultiNLI/multinli_0.9.zip
 rm -r MultiNLI/__MACOSX
