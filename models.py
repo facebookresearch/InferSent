@@ -87,7 +87,7 @@ class BLSTMEncoder(nn.Module):
             for line in f:
                 word, vec = line.split(' ', 1)
                 if word in word_dict:
-                    word_vec[word] = np.array(list(map(float, vec.split())))
+                    word_vec[word] = np.fromstring(vec, sep=' ')
         print('Found {0}(/{1}) words with glove vectors'.format(len(word_vec), len(word_dict)))
         return word_vec
     
@@ -100,11 +100,11 @@ class BLSTMEncoder(nn.Module):
             for line in f:
                 word, vec = line.split(' ', 1)
                 if k<=K:
-                    word_vec[word] = np.array(list(map(float, vec.split())))
+                    word_vec[word] = np.fromstring(vec, sep=' ')
                     k += 1
                 if k>K:
                     if word in ['<s>', '</s>']:
-                        word_vec[word] = np.array(list(map(float, vec.split())))
+                        word_vec[word] = np.fromstring(vec, sep=' ')
                         
                 if k>K and all([w in word_vec for w in ['<s>', '</s>']]):
                     break
