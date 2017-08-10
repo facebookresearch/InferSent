@@ -17,7 +17,7 @@ To get GloVe, SNLI and MultiNLI [2GB, 90MB, 216MB], run (in dataset/):
 ```bash
 ./get_data.bash
 ```
-This will download GloVe and preprocess SNLI/MultiNLI datasets.
+This will download GloVe and preprocess SNLI/MultiNLI datasets. For MacOS, you may have to use *p7zip* instead of *unzip*.
 
 
 ## Use our sentence encoder
