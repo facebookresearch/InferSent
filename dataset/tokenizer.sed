@@ -1,4 +1,4 @@
-#!/bin/sed -f
+#!/usr/bin/env sed -f
 
 # Sed script to produce Penn Treebank tokenization on arbitrary raw text.
 # Yeah, sure.
