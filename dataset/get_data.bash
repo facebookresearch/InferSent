@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree. 
 #
 
-preprocess_exec=./tokenizer.sed
+preprocess_exec="sed -f tokenizer.sed"
 
 SNLI='https://nlp.stanford.edu/projects/snli/snli_1.0.zip'
 MultiNLI='https://www.nyu.edu/projects/bowman/multinli/multinli_0.9.zip'
