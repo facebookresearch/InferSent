@@ -25,10 +25,13 @@ class BLSTMEncoder(nn.Module):
         self.enc_lstm_dim = config['enc_lstm_dim']
         self.pool_type = config['pool_type']
         self.dpout_model = config['dpout_model']
-        self.use_cuda = config['use_cuda']
         
         self.enc_lstm = nn.LSTM(self.word_emb_dim, self.enc_lstm_dim, 1, bidirectional=True, dropout=self.dpout_model)
     
+    def is_cuda(self):
+        # either all weights are on cpu or they are on gpu
+        return 'cuda' in str(type(self.enc_lstm.bias_hh_l0.data))
+
     def forward(self, sent_tuple):
         # sent_len [max_len, ..., min_len] (batch) | sent Variable(seqlen x batch x worddim)
 
@@ -38,7 +41,7 @@ class BLSTMEncoder(nn.Module):
         sent_len, idx_sort = np.sort(sent_len)[::-1], np.argsort(-sent_len)
         idx_unsort = np.argsort(idx_sort)
         
-        idx_sort = torch.from_numpy(idx_sort).cuda() if self.use_cuda else torch.from_numpy(idx_sort)
+        idx_sort = torch.from_numpy(idx_sort).cuda() if self.is_cuda() else torch.from_numpy(idx_sort)
         sent = sent.index_select(1, Variable(idx_sort))
         
         # Handling padding in Recurrent Networks
@@ -47,7 +50,7 @@ class BLSTMEncoder(nn.Module):
         sent_output = nn.utils.rnn.pad_packed_sequence(sent_output)[0]
         
         # Un-sort by length
-        idx_unsort = torch.from_numpy(idx_unsort).cuda() if self.use_cuda else torch.from_numpy(idx_unsort)
+        idx_unsort = torch.from_numpy(idx_unsort).cuda() if self.is_cuda() else torch.from_numpy(idx_unsort)
         sent_output = sent_output.index_select(1, Variable(idx_unsort))
         
         # Pooling
@@ -146,11 +149,10 @@ class BLSTMEncoder(nn.Module):
         
         return torch.FloatTensor(embed)
     
-    
-    def encode(self, sentences, bsize=64, tokenize=True, verbose=False):
-        tic = time.time()
+    def prepare_samples(self, sentences, bsize, tokenize, verbose):
         if tokenize: from nltk.tokenize import word_tokenize
-        sentences = [['<s>']+s.split()+['</s>'] if not tokenize else ['<s>']+word_tokenize(s)+['</s>'] for s in sentences]
+        sentences = [['<s>'] + s.split() + ['</s>'] if not tokenize else
+                     ['<s>']+word_tokenize(s)+['</s>'] for s in sentences]
         n_w = np.sum([len(x) for x in sentences])
         
         # filters words without glove vectors
@@ -170,11 +172,18 @@ class BLSTMEncoder(nn.Module):
         # sort by decreasing length
         lengths, idx_sort = np.sort(lengths)[::-1], np.argsort(-lengths)
         sentences = np.array(sentences)[idx_sort]
-        
+
+        return sentences, lengths, idx_sort
+
+
+    def encode(self, sentences, bsize=64, tokenize=True, verbose=False):
+        tic = time.time()
+        sentences, lengths, idx_sort = self.prepare_samples(sentences, bsize, tokenize, verbose)
+
         embeddings = []
         for stidx in range(0, len(sentences), bsize):
             batch = Variable(self.get_batch(sentences[stidx:stidx + bsize]), volatile=True)
-            if self.use_cuda:
+            if self.is_cuda():
                 batch = batch.cuda()
             batch = self.forward((batch, lengths[stidx:stidx + bsize])).data.cpu().numpy()
             embeddings.append(batch)
@@ -186,7 +195,7 @@ class BLSTMEncoder(nn.Module):
         
         if verbose:
             print('Speed : {0} sentences/s ({1} mode, bsize={2})'.format(round(len(embeddings)/(time.time()-tic), 2),\
-                                                              'gpu' if self.use_cuda else 'cpu', bsize))
+                                                              'gpu' if self.is_cuda() else 'cpu', bsize))
         return embeddings
     
     def visualize(self, sent, tokenize=True):
@@ -200,7 +209,7 @@ class BLSTMEncoder(nn.Module):
             warnings.warn('No words in "{0}" have glove vectors. Replacing by "<s> </s>"..'.format(sent))
         batch = Variable(self.get_batch(sent), volatile=True)
         
-        if self.use_cuda:
+        if self.is_cuda():
             batch = batch.cuda()
         output = self.enc_lstm(batch)[0]
         output, idxs = torch.max(output, 0)

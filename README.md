@@ -42,7 +42,6 @@ import torch
 infersent = torch.load('infersent.allnli.pickle')
 # if you are on CPU (~40 sentences/s)
 infersent = torch.load('infersent.allnli.pickle', map_location=lambda storage, loc: storage)
-infersent.use_cuda = False
 ```
 Note: To load the model, you need "encoder/models.py" in your working directory.
 

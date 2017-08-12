@@ -12,12 +12,19 @@ MultiNLI='https://www.nyu.edu/projects/bowman/multinli/multinli_0.9.zip'
 glovepath='http://nlp.stanford.edu/data/glove.840B.300d.zip'
 
 
+ZIPTOOL="unzip"
+
+#if [ "$OSTYPE" == "darwin"* ]; then
+#    # unzip can't handle large files on some MacOS versions
+#    ZIPTOOL="7za x"
+#fi
+
 
 # GloVe
 echo $glovepath
 mkdir GloVe
 curl -LO $glovepath
-unzip glove.840B.300d.zip -d GloVe/
+$ZIPTOOL glove.840B.300d.zip -d GloVe/
 rm glove.840B.300d.zip
 
 
@@ -25,7 +32,7 @@ rm glove.840B.300d.zip
 ### download SNLI
 mkdir SNLI
 curl -Lo SNLI/snli_1.0.zip $SNLI
-unzip SNLI/snli_1.0.zip -d SNLI
+$ZIPTOOL SNLI/snli_1.0.zip -d SNLI
 rm SNLI/snli_1.0.zip
 rm -r SNLI/__MACOSX
 
@@ -45,7 +52,7 @@ rm -r SNLI/snli_1.0
 # Test set not available yet : we define dev set as the "matched" set and the test set as the "mismatched"
 mkdir MultiNLI
 curl -Lo MultiNLI/multinli_0.9.zip $MultiNLI
-unzip MultiNLI/multinli_0.9.zip -d MultiNLI
+$ZIPTOOL MultiNLI/multinli_0.9.zip -d MultiNLI
 rm MultiNLI/multinli_0.9.zip
 rm -r MultiNLI/__MACOSX
 
