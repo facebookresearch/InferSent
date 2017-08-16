@@ -21,8 +21,8 @@ This will download GloVe and preprocess SNLI/MultiNLI datasets. For MacOS, you m
 
 
 ## Use our sentence encoder
-We provide a simple interface to encode english sentences. See [**encoder/demo.ipynb**](https://github.com/facebookresearch/InferSent/blob/master/encoder/demo.ipynb)
-for a practical example. Get started with the following steps:
+We provide a simple interface to encode english sentences. **See [**encoder/demo.ipynb**](https://github.com/facebookresearch/InferSent/blob/master/encoder/demo.ipynb)
+for a practical example.** Get started with the following steps:
 
 *0.0) Download our model trained on AllNLI (SNLI and MultiNLI) [147MB]:*
 ```bash
