@@ -2,12 +2,13 @@
 # All rights reserved.
 #
 # This source code is licensed under the license found in the
-# LICENSE file in the root directory of this source tree. 
+# LICENSE file in the root directory of this source tree.
 #
 
 import re
 import inspect
 from torch import optim
+
 
 def get_optimizer(s):
     """
@@ -57,20 +58,26 @@ def get_optimizer(s):
 
     return optim_fn, optim_params
 
+
 """
 Importing batcher and prepare for SentEval
 """
+
 
 def batcher(batch, params):
     # batch contains list of words
     batch = [['<s>'] + s + ['</s>'] for s in batch]
     sentences = [' '.join(s) for s in batch]
-    embeddings = params.infersent.encode(sentences, bsize=params.batch_size, tokenize=False)
+    embeddings = params.infersent.encode(sentences, bsize=params.batch_size,
+                                         tokenize=False)
 
     return embeddings
 
+
 def prepare(params, samples):
-    params.infersent.build_vocab([' '.join(s) for s in samples], params.glove_path, tokenize=False)    
+    params.infersent.build_vocab([' '.join(s) for s in samples],
+                                 params.glove_path, tokenize=False)
+
 
 class dotdict(dict):
     """ dot.notation access to dictionary attributes """
