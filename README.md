@@ -100,7 +100,7 @@ Note that while InferSent provides good features for many different tasks, our a
 
 Please cite [1](https://arxiv.org/abs/1705.02364) if you found this code useful.
 
-### Supervised Learning of Universal Sentence Representations from Natural Language Inference Data
+### Supervised Learning of Universal Sentence Representations from Natural Language Inference Data (EMNLP 2017, Outstanding Paper Award)
 
 [1] A. Conneau, D. Kiela, H. Schwenk, L. Barrault, A. Bordes, [*Supervised Learning of Universal Sentence Representations from Natural Language Inference Data*](https://arxiv.org/abs/1705.02364)
 
