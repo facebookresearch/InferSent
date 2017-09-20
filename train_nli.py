@@ -301,4 +301,4 @@ evaluate(0, 'test', True)
 
 # Save encoder instead of full model
 torch.save(nli_net.encoder,
-           os.path.join(params.outputdir, params.outputmodelname))
+           os.path.join(params.outputdir, params.outputmodelname + '.encoder'))
