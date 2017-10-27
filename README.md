@@ -61,7 +61,7 @@ If **tokenize** is True (by default), sentences will be tokenized using NTLK.
 
 *4) Encode your sentences (list of *n* sentences):*
 ```python
-infersent.encode(sentences, tokenize=True)
+embeddings = infersent.encode(sentences, tokenize=True)
 ```
 This will output an numpy array with *n* vectors of dimension **4096** (dimension of the sentence embeddings). Speed is around *1000 sentences per second* with batch size 128 on a single GPU.
 
