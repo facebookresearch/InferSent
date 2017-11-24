@@ -750,16 +750,16 @@ class ConvNetEncoder(nn.Module):
         # batch, nhid, seqlen)
 
         sent = self.convnet1(sent)
-        u1 = torch.max(sent, 2)[0].squeeze(2)
+        u1 = torch.max(sent, 2)[0]
 
         sent = self.convnet2(sent)
-        u2 = torch.max(sent, 2)[0].squeeze(2)
+        u2 = torch.max(sent, 2)[0]
 
         sent = self.convnet3(sent)
-        u3 = torch.max(sent, 2)[0].squeeze(2)
+        u3 = torch.max(sent, 2)[0]
 
         sent = self.convnet4(sent)
-        u4 = torch.max(sent, 2)[0].squeeze(2)
+        u4 = torch.max(sent, 2)[0]
 
         emb = torch.cat((u1, u2, u3, u4), 1)
 
