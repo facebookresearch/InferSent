@@ -20,12 +20,20 @@ if __name__ == '__main__':
                         help='Passes tokenize=True to build_vocab()')
     parser.add_argument('-o', '--out-dir', type=str, required=True,
                         help='Output folder to save feature files')
+    parser.add_argument('-c', '--cpu', action='store_true',
+                        help='Use CPU instead of GPU.')
+    parser.add_argument('-b', '--batch-size', type=int, default=64,
+                        help='Batch size (default: 64)')
     parser.add_argument('files', nargs='+',
                         help='List of files to extract sentence embeddings')
 
     args = parser.parse_args()
 
-    model = torch.load(args.model_path)
+    if args.cpu:
+        model = torch.load(args.model_path, map_location=lambda s, l: s)
+    else:
+        model = torch.load(args.model_path)
+
     model.set_glove_path(args.glove_path)
 
     # Ensure directory
@@ -51,7 +59,8 @@ if __name__ == '__main__':
         model.build_vocab(sents, args.tokenize)
 
         # Get embeddings
-        embs = model.encode(sents, tokenize=args.tokenize, verbose=True)
+        embs = model.encode(sents, tokenize=args.tokenize,
+                            verbose=True, bsize=args.batch_size)
 
         print('Saving to {}'.format(out_name))
         np.save(out_name, embs)
