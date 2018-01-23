@@ -9,7 +9,7 @@ We provide our pre-trained sentence encoder for reproducing the results from [ou
 This code is written in python. The dependencies are:
 
 * Python 2.7 (with recent versions of [NumPy](http://www.numpy.org/)/[SciPy](http://www.scipy.org/))
-* [Pytorch](http://pytorch.org/) >= 0.12
+* [Pytorch](http://pytorch.org/) (recent version)
 * NLTK >= 3
 
 ## Download datasets

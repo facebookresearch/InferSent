@@ -65,6 +65,9 @@ class BLSTMEncoder(nn.Module):
             emb = emb / sent_len.expand_as(emb)
         elif self.pool_type == "max":
             emb = torch.max(sent_output, 0)[0]
+            if emb.ndimension() == 3:
+                emb = emb.squeeze(0)
+                assert emb.ndimension() == 2
 
         return emb
 
