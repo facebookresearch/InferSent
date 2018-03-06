@@ -13,8 +13,9 @@ import numpy as np
 import time
 
 import torch
-from torch.autograd import Variable
 import torch.nn as nn
+import torch.nn.functional as F
+from torch.autograd import Variable
 
 """
 BLSTM (max/mean) encoder
@@ -60,20 +61,25 @@ class BLSTMEncoder(nn.Module):
         # Un-sort by length
         idx_unsort = torch.from_numpy(idx_unsort).cuda() if self.is_cuda() \
             else torch.from_numpy(idx_unsort)
+        # batch x seqlen x 2*hid
         sent_output = sent_output.index_select(0, Variable(idx_unsort))
-
-        # batch x [seqlen x 2*hid]
-        sent_output = [x[:l] for x, l in zip(sent_output, sent_len)]
 
         # Pooling
         if self.pool_type == "mean":
+            # no need to remove zero padding for mean pooling
             sent_len = Variable(torch.FloatTensor(sent_len)).unsqueeze(1).cuda()
-            emb = [torch.sum(x, 0).squeeze(0) for x in sent_output]
-            emb = torch.stack(emb, 0)
+            emb = torch.sum(sent_output, 1).squeeze(1)
             emb = emb / sent_len.expand_as(emb)
         elif self.pool_type == "max":
+            # need to remove padding for max pooling
+            # get a list of length batch_size, each element is [seqlen x 2*hid]
+            sent_output = [x[:l] for x, l in zip(sent_output, sent_len)]
             emb = [torch.max(x, 0)[0] for x in sent_output]
             emb = torch.stack(emb, 0)
+        elif self.pool_type == "max_zero":
+            # max(hiddens, zero)
+            emb = torch.max(sent_output, 1)[0]
+            emb = F.relu(emb)
 
         return emb
 
