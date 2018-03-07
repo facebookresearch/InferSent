@@ -46,7 +46,7 @@ class BLSTMEncoder(nn.Module):
         # Sort by length (keep idx)
         idx_sort = np.argsort(-sent_len)
         idx_unsort = np.argsort(idx_sort)
-        sent_len_sorted = np.sort(sent_len)[::-1]
+        sent_len_sorted = -np.sort(-sent_len)
 
         idx_sort = torch.from_numpy(idx_sort).cuda() if self.is_cuda() \
             else torch.from_numpy(idx_sort)
@@ -67,7 +67,8 @@ class BLSTMEncoder(nn.Module):
         # Pooling
         if self.pool_type == "mean":
             # no need to remove zero padding for mean pooling
-            sent_len = Variable(torch.FloatTensor(sent_len)).unsqueeze(1).cuda()
+            # copy to avoid negative stride
+            sent_len = Variable(torch.FloatTensor(sent_len.copy())).unsqueeze(1).cuda()
             emb = torch.sum(sent_output, 1).squeeze(1)
             emb = emb / sent_len.expand_as(emb)
         elif self.pool_type == "max":
