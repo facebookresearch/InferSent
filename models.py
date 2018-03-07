@@ -13,8 +13,9 @@ import numpy as np
 import time
 
 import torch
-from torch.autograd import Variable
 import torch.nn as nn
+import torch.nn.functional as F
+from torch.autograd import Variable
 
 """
 BLSTM (max/mean) encoder
@@ -43,33 +44,43 @@ class BLSTMEncoder(nn.Module):
         sent, sent_len = sent_tuple
 
         # Sort by length (keep idx)
-        sent_len, idx_sort = np.sort(sent_len)[::-1], np.argsort(-sent_len)
+        idx_sort = np.argsort(-sent_len)
         idx_unsort = np.argsort(idx_sort)
+        sent_len_sorted = -np.sort(-sent_len)
 
         idx_sort = torch.from_numpy(idx_sort).cuda() if self.is_cuda() \
             else torch.from_numpy(idx_sort)
         sent = sent.index_select(1, Variable(idx_sort))
 
         # Handling padding in Recurrent Networks
-        sent_packed = nn.utils.rnn.pack_padded_sequence(sent, sent_len)
+        sent_packed = nn.utils.rnn.pack_padded_sequence(sent, sent_len_sorted)
         sent_output = self.enc_lstm(sent_packed)[0]  # seqlen x batch x 2*nhid
-        sent_output = nn.utils.rnn.pad_packed_sequence(sent_output)[0]
+        # batch x seqlen x 2*hid
+        sent_output = nn.utils.rnn.pad_packed_sequence(sent_output, batch_first=True)[0]
 
         # Un-sort by length
         idx_unsort = torch.from_numpy(idx_unsort).cuda() if self.is_cuda() \
             else torch.from_numpy(idx_unsort)
-        sent_output = sent_output.index_select(1, Variable(idx_unsort))
+        # batch x seqlen x 2*hid
+        sent_output = sent_output.index_select(0, Variable(idx_unsort))
 
         # Pooling
         if self.pool_type == "mean":
-            sent_len = Variable(torch.FloatTensor(sent_len)).unsqueeze(1).cuda()
-            emb = torch.sum(sent_output, 0).squeeze(0)
+            # no need to remove zero padding for mean pooling
+            # copy to avoid negative stride
+            sent_len = Variable(torch.FloatTensor(sent_len.copy())).unsqueeze(1).cuda()
+            emb = torch.sum(sent_output, 1).squeeze(1)
             emb = emb / sent_len.expand_as(emb)
         elif self.pool_type == "max":
-            emb = torch.max(sent_output, 0)[0]
-            if emb.ndimension() == 3:
-                emb = emb.squeeze(0)
-                assert emb.ndimension() == 2
+            # need to remove zero padding for max pooling
+            # list of length batch_size, each element is [seqlen x 2*hid]
+            sent_output = [x[:l] for x, l in zip(sent_output, sent_len)]
+            emb = [torch.max(x, 0)[0] for x in sent_output]
+            emb = torch.stack(emb, 0)
+        elif self.pool_type == "max_zero":
+            # max(max(hiddens), zero)
+            emb = torch.max(sent_output, 1)[0]
+            emb = F.relu(emb)
 
         return emb
 
