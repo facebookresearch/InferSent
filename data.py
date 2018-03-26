@@ -56,13 +56,15 @@ def build_vocab(sentences, glove_path):
     return word_vec
 
 
-def get_nli(data_path):
+def get_nli(data_path, n_classes):
     s1 = {}
     s2 = {}
     target = {}
 
     dico_label = {'entailment': 0,  'neutral': 1, 'contradiction': 2}
-
+    if n_classes == 2:
+        dico_label = {'entailed': 0,  'not-entailed': 1}
+        
     for data_type in ['train', 'dev', 'test']:
         s1[data_type], s2[data_type], target[data_type] = {}, {}, {}
         s1[data_type]['path'] = os.path.join(data_path, 's1.' + data_type)
