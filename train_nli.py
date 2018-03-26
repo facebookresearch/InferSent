@@ -76,7 +76,7 @@ torch.cuda.manual_seed(params.seed)
 """
 DATA
 """
-train, valid, test = get_nli(params.nlipath)
+train, valid, test = get_nli(params.nlipath, params.n_classes)
 word_vec = build_vocab(train['s1'] + train['s2'] +
                        valid['s1'] + valid['s2'] +
                        test['s1'] + test['s2'], GLOVE_PATH)
