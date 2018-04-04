@@ -152,6 +152,9 @@ class BLSTMEncoder(nn.Module):
         if word_dict:
             new_word_vec = self.get_glove(word_dict)
             self.word_vec.update(new_word_vec)
+        else:
+            new_word_vec = []
+
         print('New vocab size : {0} (added {1} words)'.format(
                         len(self.word_vec), len(new_word_vec)))
 
