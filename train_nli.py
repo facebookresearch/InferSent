@@ -22,6 +22,8 @@ from models import NLINet
 
 torch.ones([2, 4]).cuda()
 
+IDX2LBL = {}
+
 GLOVE_PATH = "dataset/GloVe/glove.840B.300d.txt"
 
 parser = argparse.ArgumentParser(description='NLI training')
@@ -29,7 +31,7 @@ parser = argparse.ArgumentParser(description='NLI training')
 parser.add_argument("--nlipath", type=str, default='dataset/SNLI/', help="NLI data path (SNLI or MultiNLI)")
 parser.add_argument("--outputdir", type=str, default='savedir/', help="Output directory")
 parser.add_argument("--outputmodelname", type=str, default='model.pickle')
-
+parser.add_argument("--pred_file", type=str, default='preds', help="Suffix for the prediction files")
 
 # training
 parser.add_argument("--n_epochs", type=int, default=20)
@@ -293,6 +295,44 @@ def evaluate(epoch, eval_type='valid', final_eval=False):
                 adam_stop = True
     return eval_acc
 
+def evaluate_preds(epoch, valid, params, word_vec, nli_net, eval_type, pred_file):
+  nli_net.eval()
+  correct = 0.
+  global val_acc_best, lr, stop_training, adam_stop
+
+  #if eval_type == 'valid':
+  print('\n{0} : Epoch {1}'.format(eval_type, epoch))
+
+  hypoths = valid['hypoths'] #if eval_type == 'valid' else test['s1']
+  target = valid['lbls']
+
+  out_preds_f = open(pred_file, "wb")
+
+  for i in range(0, len(hypoths), params.batch_size):
+    # prepare batch
+    hypoths_batch, hypoths_len = get_batch(hypoths[i:i + params.batch_size], word_vec)
+    tgt_batch = None
+    if params.gpu_id > -1:
+      hypoths_batch = Variable(hypoths_batch.cuda())
+      tgt_batch = Variable(torch.LongTensor(target[i:i + params.batch_size])).cuda()
+    else:
+      hypoths_batch = Variable(hypoths_batch)
+      tgt_batch = Variable(torch.LongTensor(target[i:i + params.batch_size]))
+
+    # model forward
+    output = nli_net((hypoths_batch, hypoths_len))
+
+    all_preds = output.data.max(1)[1]
+    for pred in all_preds:
+      out_preds_f.write(IDX2LBL[pred[0]] + "\n")
+    correct += all_preds.long().eq(tgt_batch.data.long()).cpu().sum()
+
+  out_preds_f.close()
+  # save model
+  eval_acc = round(100 * correct / len(hypoths), 2)
+  print('finalgrep : accuracy {0} : {1}'.format(eval_type, eval_acc))
+
+  return eval_acc
 
 """
 Train model on Natural Language Inference task
@@ -304,13 +344,19 @@ while not stop_training and epoch <= params.n_epochs:
     eval_acc = evaluate(epoch, 'valid')
     epoch += 1
 
-# Run best model on test set.
-del nli_net
-nli_net = torch.load(os.path.join(params.outputdir, params.outputmodelname))
+IDX2LBL = {0: 'entailed', 1: 'not-entailed', 2: 'not-entailed'}
+for pair in [(train, 'train'), (val, 'val'), (test, 'test')]:
+    #args.batch_size = len(pair[0]['lbls'])
+    eval_acc = evaluate_preds(0, pair[0], params, word_vecs, nli_net, pair[1], "%s/%s_%s" % (params.outputdir, pair[1], params.pred_file))
+    print "Accuracy on " + pair[1] + ": " + str(eval_acc)
 
-print('\nTEST : Epoch {0}'.format(epoch))
-evaluate(1e6, 'valid', True)
-evaluate(0, 'test', True)
+# Run best model on test set.
+#del nli_net
+#nli_net = torch.load(os.path.join(params.outputdir, params.outputmodelname))
+
+#print('\nTEST : Epoch {0}'.format(epoch))
+#evaluate(1e6, 'valid', True)
+#evaluate(0, 'test', True)
 
 # Save encoder instead of full model
 torch.save(nli_net.encoder,
