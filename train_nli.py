@@ -23,7 +23,6 @@ from models import NLINet
 
 GLOVE_PATH = "dataset/GloVe/glove.840B.300d.txt"
 
-
 parser = argparse.ArgumentParser(description='NLI training')
 # paths
 parser.add_argument("--nlipath", type=str, default='dataset/SNLI/', help="NLI data path (SNLI or MultiNLI)")
@@ -48,9 +47,9 @@ parser.add_argument("--encoder_type", type=str, default='BLSTMEncoder', help="se
 parser.add_argument("--enc_lstm_dim", type=int, default=2048, help="encoder nhid dimension")
 parser.add_argument("--n_enc_layers", type=int, default=1, help="encoder num layers")
 parser.add_argument("--fc_dim", type=int, default=512, help="nhid of fc layers")
-parser.add_argument("--n_classes", type=int, default=3, help="entailment/neutral/contradiction")
+parser.add_argument("--n_classes", type=int, default=2, help="entailment/neutral/contradiction")
 parser.add_argument("--pool_type", type=str, default='max', help="max or mean")
-
+parser.add_argument("--pre_trained_model", type=str, default='', help="Path to pre-trained model to use encoder from") 
 # gpu
 parser.add_argument("--gpu_id", type=int, default=3, help="GPU ID")
 parser.add_argument("--seed", type=int, default=1234, help="seed")
@@ -76,7 +75,7 @@ torch.cuda.manual_seed(params.seed)
 """
 DATA
 """
-train, valid, test = get_nli(params.nlipath, params.n_classes)
+train, valid, test = get_nli(params.nlipath)
 word_vec = build_vocab(train['s1'] + train['s2'] +
                        valid['s1'] + valid['s2'] +
                        test['s1'] + test['s2'], GLOVE_PATH)
@@ -118,6 +117,19 @@ encoder_types = ['BLSTMEncoder', 'BLSTMprojEncoder', 'BGRUlastEncoder',
 assert params.encoder_type in encoder_types, "encoder_type must be in " + \
                                              str(encoder_types)
 nli_net = NLINet(config_nli_model)
+
+if params.pre_trained_model:
+  print "Pre_trained_model: " + params.pre_trained_model
+  pre_trained_model = torch.load(params.pre_trained_model)
+  
+  nli_net_params = nli_net.state_dict()
+  pre_trained_params = pre_trained_model.state_dict()
+  assert nli_net_params.keys() == pre_trained_params.keys(), "load model has different parameter state names that NLI_HYPOTHS_NET"
+  for key, parameters in nli_net_params.items():
+    if parameters.size() == pre_trained_params[key].size():
+      nli_net_params[key] = pre_trained_params[key]
+  nli_net.load_state_dict(nli_net_params)
+
 print(nli_net)
 
 # loss
