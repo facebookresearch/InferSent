@@ -20,6 +20,7 @@ from data import get_nli, get_batch, build_vocab
 from mutils import get_optimizer
 from models import NLINet
 
+torch.ones([2, 4]).cuda()
 
 GLOVE_PATH = "dataset/GloVe/glove.840B.300d.txt"
 
