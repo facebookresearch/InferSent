@@ -20,11 +20,9 @@ from data import get_nli, get_batch, build_vocab
 from mutils import get_optimizer
 from models import NLINet
 
-torch.ones([2, 4]).cuda()
-
 IDX2LBL = {}
 
-GLOVE_PATH = "dataset/GloVe/glove.840B.300d.txt"
+GLOVE_PATH = "/export/b02/apoliak/embeddings/glove/glove.840B.300d.txt"
 
 parser = argparse.ArgumentParser(description='NLI training')
 # paths
@@ -54,14 +52,18 @@ parser.add_argument("--n_classes", type=int, default=2, help="entailment/neutral
 parser.add_argument("--pool_type", type=str, default='max', help="max or mean")
 parser.add_argument("--pre_trained_model", type=str, default='', help="Path to pre-trained model to use encoder from") 
 # gpu
-parser.add_argument("--gpu_id", type=int, default=3, help="GPU ID")
+parser.add_argument("--gpu_id", type=int, default=-1, help="GPU ID")
 parser.add_argument("--seed", type=int, default=1234, help="seed")
 
 
 params, _ = parser.parse_known_args()
 
 # set gpu device
-torch.cuda.set_device(params.gpu_id)
+#print "gpuid: %d" % (params.gpu_id)
+#if params.gpu_id > -1:
+#  torch.cuda.set_device(params.gpu_id)
+
+#  torch.ones([2, 4]).cuda()
 
 # print parameters passed, and all parameters
 print('\ntogrep : {0}\n'.format(sys.argv[1:]))
@@ -303,33 +305,33 @@ def evaluate_preds(epoch, valid, params, word_vec, nli_net, eval_type, pred_file
   #if eval_type == 'valid':
   print('\n{0} : Epoch {1}'.format(eval_type, epoch))
 
-  hypoths = valid['hypoths'] #if eval_type == 'valid' else test['s1']
-  target = valid['lbls']
+
+  s1 = valid['s1'] # if eval_type == 'valid' else test['s1']
+  s2 = valid['s2'] # if eval_type == 'valid' else test['s2']
+  target = valid['label'] #if eval_type == 'valid' else test['label']
 
   out_preds_f = open(pred_file, "wb")
 
-  for i in range(0, len(hypoths), params.batch_size):
+  for i in range(0, len(s1), params.batch_size):
     # prepare batch
-    hypoths_batch, hypoths_len = get_batch(hypoths[i:i + params.batch_size], word_vec)
-    tgt_batch = None
-    if params.gpu_id > -1:
-      hypoths_batch = Variable(hypoths_batch.cuda())
-      tgt_batch = Variable(torch.LongTensor(target[i:i + params.batch_size])).cuda()
-    else:
-      hypoths_batch = Variable(hypoths_batch)
-      tgt_batch = Variable(torch.LongTensor(target[i:i + params.batch_size]))
+    s1_batch, s1_len = get_batch(s1[i:i + params.batch_size], word_vec)
+    s2_batch, s2_len = get_batch(s2[i:i + params.batch_size], word_vec)
+    s1_batch, s2_batch = Variable(s1_batch.cuda()), Variable(s2_batch.cuda())
+    tgt_batch = Variable(torch.LongTensor(target[i:i + params.batch_size])).cuda()
 
     # model forward
-    output = nli_net((hypoths_batch, hypoths_len))
+    output = nli_net((s1_batch, s1_len), (s2_batch, s2_len))
 
     all_preds = output.data.max(1)[1]
     for pred in all_preds:
       out_preds_f.write(IDX2LBL[pred[0]] + "\n")
-    correct += all_preds.long().eq(tgt_batch.data.long()).cpu().sum()
 
+    pred = output.data.max(1)[1]
+    correct += pred.long().eq(tgt_batch.data.long()).cpu().sum()
+ 
   out_preds_f.close()
   # save model
-  eval_acc = round(100 * correct / len(hypoths), 2)
+  eval_acc = round(100 * correct / len(s1), 2)
   print('finalgrep : accuracy {0} : {1}'.format(eval_type, eval_acc))
 
   return eval_acc
@@ -345,9 +347,9 @@ while not stop_training and epoch <= params.n_epochs:
     epoch += 1
 
 IDX2LBL = {0: 'entailed', 1: 'not-entailed', 2: 'not-entailed'}
-for pair in [(train, 'train'), (val, 'val'), (test, 'test')]:
+for pair in [(train, 'train'), (valid, 'dev'), (test, 'test')]:
     #args.batch_size = len(pair[0]['lbls'])
-    eval_acc = evaluate_preds(0, pair[0], params, word_vecs, nli_net, pair[1], "%s/%s_%s" % (params.outputdir, pair[1], params.pred_file))
+    eval_acc = evaluate_preds(0, pair[0], params, word_vec, nli_net, pair[1], "%s/%s_%s" % (params.outputdir, pair[1], params.pred_file))
     print "Accuracy on " + pair[1] + ": " + str(eval_acc)
 
 # Run best model on test set.
