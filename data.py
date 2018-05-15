@@ -18,7 +18,10 @@ def get_batch(batch, word_vec):
 
     for i in range(len(batch)):
         for j in range(len(batch[i])):
-            embed[j, i, :] = word_vec[batch[i][j]]
+            if batch[i][j] not in word_vec:
+                embed[j, i, :] = word_vec["OOV"]
+            else:
+                embed[j, i, :] = word_vec[batch[i][j]]
 
     return torch.from_numpy(embed).float(), lengths
 
@@ -33,7 +36,8 @@ def get_word_dict(sentences):
     word_dict['<s>'] = ''
     word_dict['</s>'] = ''
     word_dict['<p>'] = ''
-    return word_dict
+    word_dict['OOV'] = ''
+   return word_dict
 
 
 def get_glove(word_dict, glove_path):
