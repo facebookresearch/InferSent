@@ -15,7 +15,8 @@ from models import NLINet
 
 GLOVE_PATH = "/export/b02/apoliak/embeddings/glove/glove.840B.300d.txt"
 
-IDX2LBL = {0: 'entailed', 1: 'not-entailed', 2: 'not-entailed'}
+IDX2LBL = {0: 'True', 1: 'False', 2: 'False'}
+#IDX2LBL = {0: 'entailed', 1: 'not-entailed', 2: 'not-entailed'}
 
 def get_args():
   parser = argparse.ArgumentParser(description='Evaluating NLI InferSent model')

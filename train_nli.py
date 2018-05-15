@@ -346,7 +346,8 @@ while not stop_training and epoch <= params.n_epochs:
     eval_acc = evaluate(epoch, 'valid')
     epoch += 1
 
-IDX2LBL = {0: 'entailed', 1: 'not-entailed', 2: 'not-entailed'}
+#IDX2LBL = {0: 'entailed', 1: 'not-entailed', 2: 'not-entailed'}
+IDX2LBL = {0: 'True', 1: 'False', 2: 'False'}
 for pair in [(train, 'train'), (valid, 'dev'), (test, 'test')]:
     #args.batch_size = len(pair[0]['lbls'])
     eval_acc = evaluate_preds(0, pair[0], params, word_vec, nli_net, pair[1], "%s/%s_%s" % (params.outputdir, pair[1], params.pred_file))
