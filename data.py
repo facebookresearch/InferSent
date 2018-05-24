@@ -37,7 +37,7 @@ def get_word_dict(sentences):
     word_dict['</s>'] = ''
     word_dict['<p>'] = ''
     word_dict['OOV'] = ''
-   return word_dict
+    return word_dict
 
 
 def get_glove(word_dict, glove_path):
