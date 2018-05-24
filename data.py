@@ -18,7 +18,10 @@ def get_batch(batch, word_vec):
 
     for i in range(len(batch)):
         for j in range(len(batch[i])):
-            embed[j, i, :] = word_vec[batch[i][j]]
+            if batch[i][j] not in word_vec:
+                embed[j, i, :] = word_vec["OOV"]
+            else:
+                embed[j, i, :] = word_vec[batch[i][j]]
 
     return torch.from_numpy(embed).float(), lengths
 
@@ -33,6 +36,7 @@ def get_word_dict(sentences):
     word_dict['<s>'] = ''
     word_dict['</s>'] = ''
     word_dict['<p>'] = ''
+    word_dict['OOV'] = ''
     return word_dict
 
 
@@ -61,7 +65,8 @@ def get_nli(data_path):
     s2 = {}
     target = {}
 
-    dico_label = {'entailment': 0,  'neutral': 1, 'contradiction': 2}
+    #dico_label = {'entailment': 0,  'neutral': 1, 'contradiction': 2}
+    dico_label = {'entailed': 0, 'not-entailed': 1, 'entailment': 0,  'neutral': 1, 'contradiction': 2 , 'True': 0, 'False': 1}
 
     for data_type in ['train', 'dev', 'test']:
         s1[data_type], s2[data_type], target[data_type] = {}, {}, {}

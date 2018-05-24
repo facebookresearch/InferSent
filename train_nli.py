@@ -20,16 +20,16 @@ from data import get_nli, get_batch, build_vocab
 from mutils import get_optimizer
 from models import NLINet
 
+IDX2LBL = {}
 
-GLOVE_PATH = "dataset/GloVe/glove.840B.300d.txt"
-
+GLOVE_PATH = "/export/b02/apoliak/embeddings/glove/glove.840B.300d.txt"
 
 parser = argparse.ArgumentParser(description='NLI training')
 # paths
 parser.add_argument("--nlipath", type=str, default='dataset/SNLI/', help="NLI data path (SNLI or MultiNLI)")
 parser.add_argument("--outputdir", type=str, default='savedir/', help="Output directory")
 parser.add_argument("--outputmodelname", type=str, default='model.pickle')
-
+parser.add_argument("--pred_file", type=str, default='preds', help="Suffix for the prediction files")
 
 # training
 parser.add_argument("--n_epochs", type=int, default=20)
@@ -48,18 +48,22 @@ parser.add_argument("--encoder_type", type=str, default='BLSTMEncoder', help="se
 parser.add_argument("--enc_lstm_dim", type=int, default=2048, help="encoder nhid dimension")
 parser.add_argument("--n_enc_layers", type=int, default=1, help="encoder num layers")
 parser.add_argument("--fc_dim", type=int, default=512, help="nhid of fc layers")
-parser.add_argument("--n_classes", type=int, default=3, help="entailment/neutral/contradiction")
+parser.add_argument("--n_classes", type=int, default=2, help="entailment/neutral/contradiction")
 parser.add_argument("--pool_type", type=str, default='max', help="max or mean")
-
+parser.add_argument("--pre_trained_model", type=str, default='', help="Path to pre-trained model to use encoder from") 
 # gpu
-parser.add_argument("--gpu_id", type=int, default=3, help="GPU ID")
+parser.add_argument("--gpu_id", type=int, default=-1, help="GPU ID")
 parser.add_argument("--seed", type=int, default=1234, help="seed")
 
 
 params, _ = parser.parse_known_args()
 
 # set gpu device
-torch.cuda.set_device(params.gpu_id)
+#print "gpuid: %d" % (params.gpu_id)
+#if params.gpu_id > -1:
+#  torch.cuda.set_device(params.gpu_id)
+
+#  torch.ones([2, 4]).cuda()
 
 # print parameters passed, and all parameters
 print('\ntogrep : {0}\n'.format(sys.argv[1:]))
@@ -118,6 +122,19 @@ encoder_types = ['BLSTMEncoder', 'BLSTMprojEncoder', 'BGRUlastEncoder',
 assert params.encoder_type in encoder_types, "encoder_type must be in " + \
                                              str(encoder_types)
 nli_net = NLINet(config_nli_model)
+
+if params.pre_trained_model:
+  print "Pre_trained_model: " + params.pre_trained_model
+  pre_trained_model = torch.load(params.pre_trained_model)
+  
+  nli_net_params = nli_net.state_dict()
+  pre_trained_params = pre_trained_model.state_dict()
+  assert nli_net_params.keys() == pre_trained_params.keys(), "load model has different parameter state names that NLI_HYPOTHS_NET"
+  for key, parameters in nli_net_params.items():
+    if parameters.size() == pre_trained_params[key].size():
+      nli_net_params[key] = pre_trained_params[key]
+  nli_net.load_state_dict(nli_net_params)
+
 print(nli_net)
 
 # loss
@@ -280,6 +297,44 @@ def evaluate(epoch, eval_type='valid', final_eval=False):
                 adam_stop = True
     return eval_acc
 
+def evaluate_preds(epoch, valid, params, word_vec, nli_net, eval_type, pred_file):
+  nli_net.eval()
+  correct = 0.
+  global val_acc_best, lr, stop_training, adam_stop
+
+  #if eval_type == 'valid':
+  print('\n{0} : Epoch {1}'.format(eval_type, epoch))
+
+
+  s1 = valid['s1'] # if eval_type == 'valid' else test['s1']
+  s2 = valid['s2'] # if eval_type == 'valid' else test['s2']
+  target = valid['label'] #if eval_type == 'valid' else test['label']
+
+  out_preds_f = open(pred_file, "wb")
+
+  for i in range(0, len(s1), params.batch_size):
+    # prepare batch
+    s1_batch, s1_len = get_batch(s1[i:i + params.batch_size], word_vec)
+    s2_batch, s2_len = get_batch(s2[i:i + params.batch_size], word_vec)
+    s1_batch, s2_batch = Variable(s1_batch.cuda()), Variable(s2_batch.cuda())
+    tgt_batch = Variable(torch.LongTensor(target[i:i + params.batch_size])).cuda()
+
+    # model forward
+    output = nli_net((s1_batch, s1_len), (s2_batch, s2_len))
+
+    all_preds = output.data.max(1)[1]
+    for pred in all_preds:
+      out_preds_f.write(IDX2LBL[pred[0]] + "\n")
+
+    pred = output.data.max(1)[1]
+    correct += pred.long().eq(tgt_batch.data.long()).cpu().sum()
+ 
+  out_preds_f.close()
+  # save model
+  eval_acc = round(100 * correct / len(s1), 2)
+  print('finalgrep : accuracy {0} : {1}'.format(eval_type, eval_acc))
+
+  return eval_acc
 
 """
 Train model on Natural Language Inference task
@@ -291,13 +346,20 @@ while not stop_training and epoch <= params.n_epochs:
     eval_acc = evaluate(epoch, 'valid')
     epoch += 1
 
-# Run best model on test set.
-del nli_net
-nli_net = torch.load(os.path.join(params.outputdir, params.outputmodelname))
+#IDX2LBL = {0: 'entailed', 1: 'not-entailed', 2: 'not-entailed'}
+IDX2LBL = {0: 'True', 1: 'False', 2: 'False'}
+for pair in [(train, 'train'), (valid, 'dev'), (test, 'test')]:
+    #args.batch_size = len(pair[0]['lbls'])
+    eval_acc = evaluate_preds(0, pair[0], params, word_vec, nli_net, pair[1], "%s/%s_%s" % (params.outputdir, pair[1], params.pred_file))
+    print "Accuracy on " + pair[1] + ": " + str(eval_acc)
 
-print('\nTEST : Epoch {0}'.format(epoch))
-evaluate(1e6, 'valid', True)
-evaluate(0, 'test', True)
+# Run best model on test set.
+#del nli_net
+#nli_net = torch.load(os.path.join(params.outputdir, params.outputmodelname))
+
+#print('\nTEST : Epoch {0}'.format(epoch))
+#evaluate(1e6, 'valid', True)
+#evaluate(0, 'test', True)
 
 # Save encoder instead of full model
 torch.save(nli_net.encoder,
