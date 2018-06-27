@@ -48,10 +48,10 @@ nltk.download('punkt')
 *1) [Load our pre-trained model](https://github.com/facebookresearch/InferSent/blob/master/encoder/demo.ipynb) (in encoder/):*
 ```python
 from models import InferSent
-version = 2
+V = 2
 MODEL_PATH = 'encoder/infersent%s.pickle' % V
 params_model = {'bsize': 64, 'word_emb_dim': 300, 'enc_lstm_dim': 2048,
-                'pool_type': 'max', 'dpout_model': 0.0, 'version': 2}
+                'pool_type': 'max', 'dpout_model': 0.0, 'version': V}
 model = InferSent(params_model)
 model.load_state_dict(torch.load(MODEL_PATH))
 ```
