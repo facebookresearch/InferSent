@@ -56,7 +56,7 @@ class InferSent(nn.Module):
         sent, sent_len = sent_tuple
 
         # Sort by length (keep idx)
-        sent_len, idx_sort = np.sort(sent_len)[::-1], np.argsort(-sent_len)
+        sent_len_sorted, idx_sort = np.sort(sent_len)[::-1], np.argsort(-sent_len)
         idx_unsort = np.argsort(idx_sort)
 
         idx_sort = torch.from_numpy(idx_sort).cuda() if self.is_cuda() \
@@ -64,7 +64,7 @@ class InferSent(nn.Module):
         sent = sent.index_select(1, Variable(idx_sort))
 
         # Handling padding in Recurrent Networks
-        sent_packed = nn.utils.rnn.pack_padded_sequence(sent, sent_len)
+        sent_packed = nn.utils.rnn.pack_padded_sequence(sent, sent_len_sorted)
         sent_output = self.enc_lstm(sent_packed)[0]  # seqlen x batch x 2*nhid
         sent_output = nn.utils.rnn.pad_packed_sequence(sent_output)[0]
 
@@ -75,7 +75,7 @@ class InferSent(nn.Module):
 
         # Pooling
         if self.pool_type == "mean":
-            sent_len = Variable(torch.FloatTensor(sent_len)).unsqueeze(1).cuda()
+            sent_len = Variable(torch.FloatTensor(sent_len.copy())).unsqueeze(1).cuda()
             emb = torch.sum(sent_output, 0).squeeze(0)
             emb = emb / sent_len.expand_as(emb)
         elif self.pool_type == "max":
