@@ -105,7 +105,7 @@ Model | MR | CR | SUBJ | MPQA | STS14 | [STS Benchmark](http://ixa2.si.ehu.es/st
 
 ## Reference
 
-Please consider citing [1](https://arxiv.org/abs/1705.02364) if you found this code useful.
+Please consider citing [[1]](https://arxiv.org/abs/1705.02364) if you found this code useful.
 
 ### Supervised Learning of Universal Sentence Representations from Natural Language Inference Data (EMNLP 2017)
 
