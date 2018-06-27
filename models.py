@@ -160,6 +160,8 @@ class InferSent(nn.Module):
         if word_dict:
             new_word_vec = self.get_w2v(word_dict)
             self.word_vec.update(new_word_vec)
+        else:
+            new_word_vec = []
         print('New vocab size : %s (added %s words)'% (len(self.word_vec), len(new_word_vec)))
 
     def get_batch(self, batch):
