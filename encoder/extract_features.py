@@ -4,7 +4,7 @@ import torch
 import argparse
 
 import numpy as np
-
+from models import InferSent
 
 if __name__ == '__main__':
 
@@ -12,9 +12,11 @@ if __name__ == '__main__':
         prog='extract-features',
         description='Extract features from pretrained InferSent model')
 
-    parser.add_argument('-g', '--glove-path', type=str, required=True,
-                        help='Path to "glove.840B.300d.txt" file')
-    parser.add_argument('-f', '--model-path', type=str, required=True,
+    parser.add_argument('-g', '--w2v_path', type=str, required=True,
+                        help='Path to word vector file')
+    parser.add_argument('-v', '--version', type=int, required=True,
+                        help='Path to pretrained .pickle model file')
+    parser.add_argument('-f', '--model_path', type=str, required=True,
                         help='Path to pretrained .pickle model file')
     parser.add_argument('-t', '--tokenize', action='store_true',
                         help='Passes tokenize=True to build_vocab()')
@@ -29,12 +31,15 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    if args.cpu:
-        model = torch.load(args.model_path, map_location=lambda s, l: s)
-    else:
-        model = torch.load(args.model_path)
+    params_model = {'bsize': 64, 'word_emb_dim': 300, 'enc_lstm_dim': 2048,
+                    'pool_type': 'max', 'dpout_model': 0.0, 'version': args.version}
+    model = InferSent(params_model)
+    model.load_state_dict(torch.load(args.model_path))
 
-    model.set_glove_path(args.glove_path)
+    if not args.cpu:
+        model = model.cuda()
+
+    model.set_w2v_path(args.w2v_path)
 
     # Ensure directory
     if not os.path.exists(args.out_dir):
