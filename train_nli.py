@@ -263,7 +263,7 @@ def evaluate(epoch, eval_type='valid', final_eval=False):
             print('saving model at epoch {0}'.format(epoch))
             if not os.path.exists(params.outputdir):
                 os.makedirs(params.outputdir)
-            torch.save(nli_net, os.path.join(params.outputdir,
+            torch.save(nli_net.state_dict(), os.path.join(params.outputdir,
                        params.outputmodelname))
             val_acc_best = eval_acc
         else:
@@ -292,13 +292,11 @@ while not stop_training and epoch <= params.n_epochs:
     epoch += 1
 
 # Run best model on test set.
-del nli_net
-nli_net = torch.load(os.path.join(params.outputdir, params.outputmodelname))
+nli_net.load_state_dict(os.path.join(params.outputdir, params.outputmodelname))
 
 print('\nTEST : Epoch {0}'.format(epoch))
 evaluate(1e6, 'valid', True)
 evaluate(0, 'test', True)
 
 # Save encoder instead of full model
-torch.save(nli_net.encoder,
-           os.path.join(params.outputdir, params.outputmodelname + '.encoder'))
+torch.save(nli_net.encoder.state_dict(), os.path.join(params.outputdir, params.outputmodelname + '.encoder.pkl'))
