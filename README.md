@@ -4,6 +4,8 @@
 
 We provide our pre-trained English sentence encoder [our paper](https://arxiv.org/abs/1705.02364) and our [SentEval](https://github.com/facebookresearch/SentEval) evaluation toolkit.
 
+**Recent changes**: Added infersent2 model trained on fastText vectors and added max-pool option.
+
 ## Dependencies
 
 This code is written in python. Dependencies include:
