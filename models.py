@@ -790,7 +790,7 @@ class NLINet(nn.Module):
         # classifier
         self.nonlinear_fc = config['nonlinear_fc']
         self.fc_dim = config['fc_dim']
-        self.n_classes = 3
+        self.n_classes = config['n_classes']
         self.enc_lstm_dim = config['enc_lstm_dim']
         self.encoder_type = config['encoder_type']
         self.dpout_fc = config['dpout_fc']
