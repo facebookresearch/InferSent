@@ -34,8 +34,8 @@ for a practical example.** Get started with the following steps:
 
 *0.0) Download our InferSent models (V1 trained with GloVe, V2 trained with fastText)[147MB]:*
 ```bash
-curl -Lo encoder/infersent1.pickle https://s3.amazonaws.com/senteval/infersent/infersent1.pickle
-curl -Lo encoder/infersent2.pickle https://s3.amazonaws.com/senteval/infersent/infersent2.pickle
+curl -Lo encoder/infersent1.pkl https://s3.amazonaws.com/senteval/infersent/infersent1.pkl
+curl -Lo encoder/infersent2.pkl https://s3.amazonaws.com/senteval/infersent/infersent2.pkl
 ```
 Note that infersent1 is trained with GloVe (which have been trained on text preprocessed with the PTB tokenizer) and infersent2 is trained with fastText (which have been trained on text preprocessed with the MOSES tokenizer). The latter also removes the padding of zeros with max-pooling which was inconvenient when embedding sentences outside of their batches.
 
@@ -49,7 +49,7 @@ nltk.download('punkt')
 ```python
 from models import InferSent
 V = 2
-MODEL_PATH = 'encoder/infersent%s.pickle' % V
+MODEL_PATH = 'encoder/infersent%s.pkl' % V
 params_model = {'bsize': 64, 'word_emb_dim': 300, 'enc_lstm_dim': 2048,
                 'pool_type': 'max', 'dpout_model': 0.0, 'version': V}
 model = InferSent(params_model)

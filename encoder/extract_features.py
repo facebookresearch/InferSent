@@ -15,9 +15,9 @@ if __name__ == '__main__':
     parser.add_argument('-g', '--w2v_path', type=str, required=True,
                         help='Path to word vector file')
     parser.add_argument('-v', '--version', type=int, required=True,
-                        help='Path to pretrained .pickle model file')
+                        help='Version of InferSent (GloVe-V1 or fastText-V2)')
     parser.add_argument('-f', '--model_path', type=str, required=True,
-                        help='Path to pretrained .pickle model file')
+                        help='Path to pretrained .pkl model file')
     parser.add_argument('-t', '--tokenize', action='store_true',
                         help='Passes tokenize=True to build_vocab()')
     parser.add_argument('-o', '--out-dir', type=str, required=True,
