@@ -20,18 +20,31 @@ import torch.nn as nn
 BLSTM (max/mean) encoder
 """
 
-class BLSTMEncoder(nn.Module):
+class InferSent(nn.Module):
 
     def __init__(self, config):
-        super(BLSTMEncoder, self).__init__()
+        super(InferSent, self).__init__()
         self.bsize = config['bsize']
         self.word_emb_dim = config['word_emb_dim']
         self.enc_lstm_dim = config['enc_lstm_dim']
         self.pool_type = config['pool_type']
         self.dpout_model = config['dpout_model']
+        self.version = 1 if 'version' not in config else config['version']
 
         self.enc_lstm = nn.LSTM(self.word_emb_dim, self.enc_lstm_dim, 1,
                                 bidirectional=True, dropout=self.dpout_model)
+
+        assert self.version in [1, 2]
+        if self.version == 1:
+            self.bos = '<s>'
+            self.eos = '</s>'
+            self.max_pad = True
+            self.moses_tok = False
+        elif self.version == 2:
+            self.bos = '<p>'
+            self.eos = '</p>'
+            self.max_pad = False
+            self.moses_tok = True
 
     def is_cuda(self):
         # either all weights are on cpu or they are on gpu
@@ -66,6 +79,8 @@ class BLSTMEncoder(nn.Module):
             emb = torch.sum(sent_output, 0).squeeze(0)
             emb = emb / sent_len.expand_as(emb)
         elif self.pool_type == "max":
+            if not self.max_pad:
+                sent_output[sent_output == 0] = -1e9
             emb = torch.max(sent_output, 0)[0]
             if emb.ndimension() == 3:
                 emb = emb.squeeze(0)
@@ -73,75 +88,66 @@ class BLSTMEncoder(nn.Module):
 
         return emb
 
-    def set_glove_path(self, glove_path):
-        self.glove_path = glove_path
+    def set_w2v_path(self, w2v_path):
+        self.w2v_path = w2v_path
 
     def get_word_dict(self, sentences, tokenize=True):
         # create vocab of words
         word_dict = {}
-        if tokenize:
-            from nltk.tokenize import word_tokenize
-        sentences = [s.split() if not tokenize else word_tokenize(s)
-                     for s in sentences]
+        sentences = [s.split() if not tokenize else self.tokenize(s) for s in sentences]
         for sent in sentences:
             for word in sent:
                 if word not in word_dict:
                     word_dict[word] = ''
-        word_dict['<s>'] = ''
-        word_dict['</s>'] = ''
+        word_dict[self.bos] = ''
+        word_dict[self.eos] = ''
         return word_dict
 
-    def get_glove(self, word_dict):
-        assert hasattr(self, 'glove_path'), \
-               'warning : you need to set_glove_path(glove_path)'
-        # create word_vec with glove vectors
+    def get_w2v(self, word_dict):
+        assert hasattr(self, 'w2v_path'), 'w2v path not set'
+        # create word_vec with w2v vectors
         word_vec = {}
-        with open(self.glove_path) as f:
+        with open(self.w2v_path) as f:
             for line in f:
                 word, vec = line.split(' ', 1)
                 if word in word_dict:
                     word_vec[word] = np.fromstring(vec, sep=' ')
-        print('Found {0}(/{1}) words with glove vectors'.format(
-                    len(word_vec), len(word_dict)))
+        print('Found %s(/%s) words with w2v vectors' % (len(word_vec), len(word_dict)))
         return word_vec
 
-    def get_glove_k(self, K):
-        assert hasattr(self, 'glove_path'), 'warning : you need \
-                                             to set_glove_path(glove_path)'
-        # create word_vec with k first glove vectors
+    def get_w2v_k(self, K):
+        assert hasattr(self, 'w2v_path'), 'w2v path not set'
+        # create word_vec with k first w2v vectors
         k = 0
         word_vec = {}
-        with open(self.glove_path) as f:
+        with open(self.w2v_path) as f:
             for line in f:
                 word, vec = line.split(' ', 1)
                 if k <= K:
                     word_vec[word] = np.fromstring(vec, sep=' ')
                     k += 1
                 if k > K:
-                    if word in ['<s>', '</s>']:
+                    if word in [self.bos, self.eos]:
                         word_vec[word] = np.fromstring(vec, sep=' ')
 
-                if k > K and all([w in word_vec for w in ['<s>', '</s>']]):
+                if k > K and all([w in word_vec for w in [self.bos, self.eos]]):
                     break
         return word_vec
 
     def build_vocab(self, sentences, tokenize=True):
-        assert hasattr(self, 'glove_path'), 'warning : you need \
-                                             to set_glove_path(glove_path)'
+        assert hasattr(self, 'w2v_path'), 'w2v path not set'
         word_dict = self.get_word_dict(sentences, tokenize)
-        self.word_vec = self.get_glove(word_dict)
-        print('Vocab size : {0}'.format(len(self.word_vec)))
+        self.word_vec = self.get_w2v(word_dict)
+        print('Vocab size : %s' % (len(self.word_vec)))
 
-    # build GloVe vocab with k most frequent words
+    # build w2v vocab with k most frequent words
     def build_vocab_k_words(self, K):
-        assert hasattr(self, 'glove_path'), 'warning : you need \
-                                             to set_glove_path(glove_path)'
-        self.word_vec = self.get_glove_k(K)
-        print('Vocab size : {0}'.format(K))
+        assert hasattr(self, 'w2v_path'), 'w2v path not set'
+        self.word_vec = self.get_w2v_k(K)
+        print('Vocab size : %s' % (K))
 
     def update_vocab(self, sentences, tokenize=True):
-        assert hasattr(self, 'glove_path'), 'warning : you need \
-                                             to set_glove_path(glove_path)'
+        assert hasattr(self, 'w2v_path'), 'warning : w2v path not set'
         assert hasattr(self, 'word_vec'), 'build_vocab before updating it'
         word_dict = self.get_word_dict(sentences, tokenize)
 
@@ -152,10 +158,9 @@ class BLSTMEncoder(nn.Module):
 
         # udpate vocabulary
         if word_dict:
-            new_word_vec = self.get_glove(word_dict)
+            new_word_vec = self.get_w2v(word_dict)
             self.word_vec.update(new_word_vec)
-        print('New vocab size : {0} (added {1} words)'.format(
-                        len(self.word_vec), len(new_word_vec)))
+        print('New vocab size : %s (added %s words)'% (len(self.word_vec), len(new_word_vec)))
 
     def get_batch(self, batch):
         # sent in batch in decreasing order of lengths
@@ -168,28 +173,35 @@ class BLSTMEncoder(nn.Module):
 
         return torch.FloatTensor(embed)
 
+    def tokenize(self, s):
+        from nltk.tokenize import word_tokenize
+        if self.moses_tok:
+            s = ' '.join(word_tokenize(s))
+            s = s.replace(" n't ", "n 't ")  # HACK to get ~MOSES tokenization
+            return s.split()
+        else:
+            return word_tokenize(s)
+
     def prepare_samples(self, sentences, bsize, tokenize, verbose):
-        if tokenize:
-            from nltk.tokenize import word_tokenize
-        sentences = [['<s>'] + s.split() + ['</s>'] if not tokenize else
-                     ['<s>']+word_tokenize(s)+['</s>'] for s in sentences]
+        sentences = [[self.bos] + s.split() + [self.eos] if not tokenize else
+                     [self.bos] + self.tokenize(s) + [self.eos] for s in sentences]
         n_w = np.sum([len(x) for x in sentences])
 
-        # filters words without glove vectors
+        # filters words without w2v vectors
         for i in range(len(sentences)):
             s_f = [word for word in sentences[i] if word in self.word_vec]
             if not s_f:
                 import warnings
-                warnings.warn('No words in "{0}" (idx={1}) have glove vectors. \
-                               Replacing by "</s>"..'.format(sentences[i], i))
-                s_f = ['</s>']
+                warnings.warn('No words in "%s" (idx=%s) have w2v vectors. \
+                               Replacing by "</s>"..' % (sentences[i], i))
+                s_f = [self.eos]
             sentences[i] = s_f
 
         lengths = np.array([len(s) for s in sentences])
         n_wk = np.sum(lengths)
         if verbose:
-            print('Nb words kept : {0}/{1} ({2} %)'.format(
-                        n_wk, n_w, round((100.0 * n_wk) / n_w, 2)))
+            print('Nb words kept : %s/%s (%.1f%s)' % (
+                        n_wk, n_w, 100.0 * n_wk / n_w, '%'))
 
         # sort by decreasing length
         lengths, idx_sort = np.sort(lengths)[::-1], np.argsort(-lengths)
@@ -218,23 +230,20 @@ class BLSTMEncoder(nn.Module):
         embeddings = embeddings[idx_unsort]
 
         if verbose:
-            print('Speed : {0} sentences/s ({1} mode, bsize={2})'.format(
-                    round(len(embeddings)/(time.time()-tic), 2),
+            print('Speed : %.1f sentences/s (%s mode, bsize=%s)' % (
+                    len(embeddings)/(time.time()-tic),
                     'gpu' if self.is_cuda() else 'cpu', bsize))
         return embeddings
 
     def visualize(self, sent, tokenize=True):
-        if tokenize:
-            from nltk.tokenize import word_tokenize
 
-        sent = sent.split() if not tokenize else word_tokenize(sent)
-        sent = [['<s>'] + [word for word in sent if word in self.word_vec] +
-                ['</s>']]
+        sent = sent.split() if not tokenize else self.tokenize(sent)
+        sent = [[self.bos] + [word for word in sent if word in self.word_vec] + [self.eos]]
 
-        if ' '.join(sent[0]) == '<s> </s>':
+        if ' '.join(sent[0]) == '%s %s' % (self.bos, self.eos):
             import warnings
-            warnings.warn('No words in "{0}" have glove vectors. Replacing \
-                           by "<s> </s>"..'.format(sent))
+            warnings.warn('No words in "%s" have w2v vectors. Replacing \
+                           by "%s %s"..' % (sent, self.bos, self.eos))
         batch = Variable(self.get_batch(sent), volatile=True)
 
         if self.is_cuda():
@@ -248,7 +257,7 @@ class BLSTMEncoder(nn.Module):
         # visualize model
         import matplotlib.pyplot as plt
         x = range(len(sent[0]))
-        y = [100.0*n/np.sum(argmaxs) for n in argmaxs]
+        y = [100.0 * n / np.sum(argmaxs) for n in argmaxs]
         plt.xticks(x, sent[0], rotation=45)
         plt.bar(x, y)
         plt.ylabel('%')

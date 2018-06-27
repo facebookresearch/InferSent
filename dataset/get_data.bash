@@ -9,7 +9,6 @@ preprocess_exec="sed -f tokenizer.sed"
 
 SNLI='https://nlp.stanford.edu/projects/snli/snli_1.0.zip'
 MultiNLI='https://www.nyu.edu/projects/bowman/multinli/multinli_0.9.zip'
-glovepath='http://nlp.stanford.edu/data/glove.840B.300d.zip'
 
 
 ZIPTOOL="unzip"
@@ -18,15 +17,6 @@ ZIPTOOL="unzip"
 #    # unzip can't handle large files on some MacOS versions
 #    ZIPTOOL="7za x"
 #fi
-
-
-# GloVe
-echo $glovepath
-mkdir GloVe
-curl -LO $glovepath
-$ZIPTOOL glove.840B.300d.zip -d GloVe/
-rm glove.840B.300d.zip
-
 
 
 ### download SNLI

@@ -1,33 +1,43 @@
 # InferSent
 
-*InferSent* is a *sentence embeddings* method that provides semantic sentence representations. It is trained on natural language inference data and generalizes well to many different tasks.
+*InferSent* is a *sentence embeddings* method that provides semantic representations for English sentences. It is trained on natural language inference data and generalizes well to many different tasks.
 
-We provide our pre-trained sentence encoder for reproducing the results from [our paper](https://arxiv.org/abs/1705.02364). See also [SentEval](https://github.com/facebookresearch/SentEval) for automatic evaluation of the quality of sentence embeddings.
+We provide our pre-trained English sentence encoder [our paper](https://arxiv.org/abs/1705.02364) and our [SentEval](https://github.com/facebookresearch/SentEval) evaluation toolkit.
 
 ## Dependencies
 
-This code is written in python. The dependencies are:
+This code is written in python. Dependencies include:
 
-* Python 2.7 (with recent versions of [NumPy](http://www.numpy.org/)/[SciPy](http://www.scipy.org/))
+* Python 2/3
 * [Pytorch](http://pytorch.org/) (recent version)
 * NLTK >= 3
 
 ## Download datasets
-To get GloVe, SNLI and MultiNLI [2GB, 90MB, 216MB], run (in dataset/):
+To get SNLI and MultiNLI, run (in dataset/):
 ```bash
 ./get_data.bash
 ```
-This will download GloVe and preprocess SNLI/MultiNLI datasets. For MacOS, you may have to use *p7zip* instead of *unzip*.
+This will download and preprocess SNLI/MultiNLI datasets. For MacOS, you may have to use *p7zip* instead of *unzip*.
 
+
+Download [GloVe](https://nlp.stanford.edu/projects/glove/) (V1) or [fastText](https://fasttext.cc/docs/en/english-vectors.html) (V2) vectors:
+```bash
+mkdir dataset/GloVe
+curl -Lo dataset/GloVe/glove.840B.300d.zip http://nlp.stanford.edu/data/glove.840B.300d.zip
+mkdir dataset/fastText
+curl -Lo dataset/fastText/crawl-300d-2M.vec.zip https://s3-us-west-1.amazonaws.com/fasttext-vectors/crawl-300d-2M.vec.zip
+```
 
 ## Use our sentence encoder
-We provide a simple interface to encode english sentences. **See [**encoder/demo.ipynb**](https://github.com/facebookresearch/InferSent/blob/master/encoder/demo.ipynb)
+We provide a simple interface to encode English sentences. **See [**encoder/demo.ipynb**](https://github.com/facebookresearch/InferSent/blob/master/encoder/demo.ipynb)
 for a practical example.** Get started with the following steps:
 
-*0.0) Download our model trained on AllNLI (SNLI and MultiNLI) [147MB]:*
+*0.0) Download our InferSent models (V1 trained with GloVe, V2 trained with fastText)[147MB]:*
 ```bash
-curl -Lo encoder/infersent.allnli.pickle https://s3.amazonaws.com/senteval/infersent/infersent.allnli.pickle
+curl -Lo encoder/infersent1.pickle https://s3.amazonaws.com/senteval/infersent/infersent1.pickle
+curl -Lo encoder/infersent2.pickle https://s3.amazonaws.com/senteval/infersent/infersent2.pickle
 ```
+Note that infersent1 is trained with GloVe (which have been trained on text preprocessed with the PTB tokenizer) and infersent2 is trained with fastText (which have been trained on text preprocessed with the MOSES tokenizer). The latter also removes the padding of zeros with max-pooling which was inconvenient when embedding sentences outside of their batches.
 
 *0.1) Make sure you have the NLTK tokenizer by running the following once:*
 ```python
@@ -35,39 +45,39 @@ import nltk
 nltk.download('punkt')
 ```
 
-*1) Load our pre-trained model (in encoder/):*
+*1) [Load our pre-trained model](https://github.com/facebookresearch/InferSent/blob/master/encoder/demo.ipynb) (in encoder/):*
 ```python
-import torch
-# if you are on GPU (encoding ~1000 sentences/s, default)
-infersent = torch.load('infersent.allnli.pickle')
-# if you are on CPU (~40 sentences/s)
-infersent = torch.load('infersent.allnli.pickle', map_location=lambda storage, loc: storage)
+from models import InferSent
+version = 2
+MODEL_PATH = 'encoder/infersent%s.pickle' % V
+params_model = {'bsize': 64, 'word_emb_dim': 300, 'enc_lstm_dim': 2048,
+                'pool_type': 'max', 'dpout_model': 0.0, 'version': 2}
+model = InferSent(params_model)
+model.load_state_dict(torch.load(MODEL_PATH))
 ```
-Note: To load the model, you need "encoder/models.py" in your working directory.
 
-*2) Set GloVe path for the model:*
+*2) Set word vector path for the model:*
 ```python
-infersent.set_glove_path(glove_path)
+W2V_PATH = 'fastText/crawl-300d-2M.vec'
+infersent.set_w2v_path(W2V_PATH)
 ```
-where *glove_path* is the path to *'glove.840B.300d.txt'*, containing glove vectors with which our model was trained. Note that using [GloVe](https://nlp.stanford.edu/projects/glove/) vectors allows to have a coverage of more than *2 million* english words.
-
 
 *3) Build the vocabulary of word vectors (i.e keep only those needed):*
 ```python
 infersent.build_vocab(sentences, tokenize=True)
 ```
-where *sentences* is your list of **n** sentences. You can update your vocabulary using *infersent.update_vocab(sentences)*, or directly load the **K** most common english words with *infersent.build_vocab_k_words(K=100000)*.
+where *sentences* is your list of **n** sentences. You can update your vocabulary using *infersent.update_vocab(sentences)*, or directly load the **K** most common English words with *infersent.build_vocab_k_words(K=100000)*.
 If **tokenize** is True (by default), sentences will be tokenized using NTLK.
 
 *4) Encode your sentences (list of *n* sentences):*
 ```python
 embeddings = infersent.encode(sentences, tokenize=True)
 ```
-This will output an numpy array with *n* vectors of dimension **4096** (dimension of the sentence embeddings). Speed is around *1000 sentences per second* with batch size 128 on a single GPU.
+This outputs a numpy array with *n* vectors of dimension **4096**. Speed is around *1000 sentences per second* with batch size 128 on a single GPU.
 
 *5) Visualize the importance that our model attributes to each word:*
 
-Our representations were trained to focus on semantic information such that a classifier can easily tell the difference between contradictory, neutral or entailed sentences. We provide a function to visualize the importance of each word in the encoding of a sentence:
+We provide a function to visualize the importance of each word in the encoding of a sentence:
 ```python
 infersent.visualize('A man plays an instrument.', tokenize=True)
 ```
@@ -75,43 +85,54 @@ infersent.visualize('A man plays an instrument.', tokenize=True)
 
 
 ## Train model on Natural Language Inference (SNLI)
-To reproduce our results and train our models on [SNLI](https://nlp.stanford.edu/projects/snli/), set **GLOVE_PATH** in *train_nli.py*, then run:
+To reproduce our results on [SNLI](https://nlp.stanford.edu/projects/snli/), set **W2V_PATH** in *train_nli.py*, then run:
 ```bash
 python train_nli.py
 ```
 You should obtain a dev accuracy of 85 and a test accuracy of **[84.5](https://nlp.stanford.edu/projects/snli/)** with the default setting.
 
-## Reproduce our results on transfer tasks
-To reproduce our results on transfer tasks, clone [SentEval](https://github.com/facebookresearch/SentEval) and set **PATH_SENTEVAL**, **PATH_TRANSFER_TASKS** in *evaluate_model.py*, then run:
-```bash
-python evaluate_model.py
-```
+## Evaluate the encoder on transfer tasks
+To evaluate the model on transfer tasks, see [SentEval](https://github.com/facebookresearch/SentEval/tree/master/examples). Be mindful to choose the same tokenization used for training the encoder.
 
-Using our best model *infersent.allnli.pickle*, you should obtain the following test results:
+You should obtain the following test results for the baselines and the InferSent models:
 
 Model | MR | CR | SUBJ | MPQA | STS14 | [STS Benchmark](http://ixa2.si.ehu.es/stswiki/index.php/STSbenchmark#Results) | SICK Relatedness | SICK Entailment | SST | TREC | MRPC
 :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---:
-**`InferSent`** | **81.1** | **86.3** | 92.4 | **90.2** | **.68/.65** | **75.8/75.5** | **0.884** | **86.1** | **84.6** | 88.2 | 76.2/83.1
-`SkipThought` | 79.4 | 83.1 | **93.7** | 89.3 | .44/.45 | 72.1/70.2| 0.858 | 79.5 | 82.9 | 88.4 | - 
-
-Note that while InferSent provides good features for many different tasks, our approach also obtains strong results on STS tasks which evaluate the quality of the cosine metrics in the embedding space.
+**`InferSent1`** | **81.1** | **86.3** | 92.4 | **90.2** | **.68/.65** | 75.8/75.5 | 0.884 | 86.1 | **84.6** | 88.2 | **76.2**/83.1
+**`InferSent2`** | 79.7 | 84.2 | 92.7 | 89.4 | **.68/.66** | **78.4/78.4** | **0.888** | **86.3** | 84.3 | **90.8** | 76.0/**83.8**
+`SkipThought` | 79.4 | 83.1 | **93.7** | 89.3 | .44/.45 | 72.1/70.2| 0.858 | 79.5 | 82.9 | 88.4 | -
+`fastText-BoV` | 78.2 | 80.2 | 91.8 | 88.0 | .65/.63 | 70.2/68.3 | 0.823 | 78.9 | 82.3 | 83.4 | 74.4/82.4
 
 ## Reference
 
-Please cite [1](https://arxiv.org/abs/1705.02364) if you found this code useful.
+Please consider citing [1](https://arxiv.org/abs/1705.02364) if you found this code useful.
 
-### Supervised Learning of Universal Sentence Representations from Natural Language Inference Data (EMNLP 2017, Outstanding Paper Award)
+### Supervised Learning of Universal Sentence Representations from Natural Language Inference Data (EMNLP 2017)
 
 [1] A. Conneau, D. Kiela, H. Schwenk, L. Barrault, A. Bordes, [*Supervised Learning of Universal Sentence Representations from Natural Language Inference Data*](https://arxiv.org/abs/1705.02364)
 
 ```
-@article{conneau2017supervised,
-  title={Supervised Learning of Universal Sentence Representations from Natural Language Inference Data},
-  author={Conneau, Alexis and Kiela, Douwe and Schwenk, Holger and Barrault, Loic and Bordes, Antoine},
-  journal={arXiv preprint arXiv:1705.02364},
-  year={2017}
+@InProceedings{conneau-EtAl:2017:EMNLP2017,
+  author    = {Conneau, Alexis  and  Kiela, Douwe  and  Schwenk, Holger  and  Barrault, Lo\"{i}c  and  Bordes, Antoine},
+  title     = {Supervised Learning of Universal Sentence Representations from Natural Language Inference Data},
+  booktitle = {Proceedings of the 2017 Conference on Empirical Methods in Natural Language Processing},
+  month     = {September},
+  year      = {2017},
+  address   = {Copenhagen, Denmark},
+  publisher = {Association for Computational Linguistics},
+  pages     = {670--680},
+  url       = {https://www.aclweb.org/anthology/D17-1070}
 }
 ```
 
-Contact: [aconneau@fb.com](mailto:aconneau@fb.com)
-
+### Related work
+* [J. R Kiros, Y. Zhu, R. Salakhutdinov, R. S. Zemel, A. Torralba, R. Urtasun, S. Fidler - SkipThought Vectors, NIPS 2015](https://arxiv.org/abs/1506.06726)
+* [S. Arora, Y. Liang, T. Ma - A Simple but Tough-to-Beat Baseline for Sentence Embeddings, ICLR 2017](https://openreview.net/pdf?id=SyK00v5xx)
+* [Y. Adi, E. Kermany, Y. Belinkov, O. Lavi, Y. Goldberg - Fine-grained analysis of sentence embeddings using auxiliary prediction tasks, ICLR 2017](https://arxiv.org/abs/1608.04207)
+* [A. Conneau, D. Kiela - SentEval: An Evaluation Toolkit for Universal Sentence Representations, LREC 2018](https://arxiv.org/abs/1803.05449)
+* [S. Subramanian, A. Trischler, Y. Bengio, C. J Pal - Learning General Purpose Distributed Sentence Representations via Large Scale Multi-task Learning, ICLR 2018](https://arxiv.org/abs/1804.00079)
+* [A. Nie, E. D. Bennett, N. D. Goodman - DisSent: Sentence Representation Learning from Explicit Discourse Relations, 2018](https://arxiv.org/abs/1710.04334)
+* [D. Cer, Y. Yang, S. Kong, N. Hua, N. Limtiaco, R. St. John, N. Constant, M. Guajardo-Cespedes, S. Yuan, C. Tar, Y. Sung, B. Strope, R. Kurzweil - Universal Sentence Encoder, 2018](https://arxiv.org/abs/1803.11175)
+* [A. Conneau, G. Kruszewski, G. Lample, L. Barrault, M. Baroni - What you can cram into a single vector: Probing sentence embeddings for linguistic properties, ACL 2018](https://arxiv.org/abs/1805.01070)
+* [A. Wang, A. Singh, J. Michael, F. Hill, O. Levy, S. Bowman - GLUE: A Multi-Task Benchmark and Analysis Platform
+for Natural Language Understanding](https://arxiv.org/abs/1804.07461)

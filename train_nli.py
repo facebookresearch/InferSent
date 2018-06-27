@@ -21,7 +21,7 @@ from mutils import get_optimizer
 from models import NLINet
 
 
-GLOVE_PATH = "dataset/GloVe/glove.840B.300d.txt"
+W2V_PATH = "dataset/GloVe/glove.840B.300d.txt"
 
 
 parser = argparse.ArgumentParser(description='NLI training')
@@ -44,7 +44,7 @@ parser.add_argument("--minlr", type=float, default=1e-5, help="minimum lr")
 parser.add_argument("--max_norm", type=float, default=5., help="max norm (grad clipping)")
 
 # model
-parser.add_argument("--encoder_type", type=str, default='BLSTMEncoder', help="see list of encoders")
+parser.add_argument("--encoder_type", type=str, default='InferSentV1', help="see list of encoders")
 parser.add_argument("--enc_lstm_dim", type=int, default=2048, help="encoder nhid dimension")
 parser.add_argument("--n_enc_layers", type=int, default=1, help="encoder num layers")
 parser.add_argument("--fc_dim", type=int, default=512, help="nhid of fc layers")
@@ -79,7 +79,7 @@ DATA
 train, valid, test = get_nli(params.nlipath)
 word_vec = build_vocab(train['s1'] + train['s2'] +
                        valid['s1'] + valid['s2'] +
-                       test['s1'] + test['s2'], GLOVE_PATH)
+                       test['s1'] + test['s2'], W2V_PATH)
 
 for split in ['s1', 's2']:
     for data_type in ['train', 'valid', 'test']:
@@ -112,7 +112,7 @@ config_nli_model = {
 }
 
 # model
-encoder_types = ['BLSTMEncoder', 'BLSTMprojEncoder', 'BGRUlastEncoder',
+encoder_types = ['InferSent', 'BLSTMprojEncoder', 'BGRUlastEncoder',
                  'InnerAttentionMILAEncoder', 'InnerAttentionYANGEncoder',
                  'InnerAttentionNAACLEncoder', 'ConvNetEncoder', 'LSTMEncoder']
 assert params.encoder_type in encoder_types, "encoder_type must be in " + \
