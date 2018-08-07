@@ -10,11 +10,11 @@ import numpy as np
 import torch
 
 
-def get_batch(batch, word_vec):
+def get_batch(batch, word_vec, emb_dim=300):
     # sent in batch in decreasing order of lengths (bsize, max_len, word_dim)
     lengths = np.array([len(x) for x in batch])
     max_len = np.max(lengths)
-    embed = np.zeros((max_len, len(batch), 300))
+    embed = np.zeros((max_len, len(batch), emb_dim))
 
     for i in range(len(batch)):
         for j in range(len(batch[i])):

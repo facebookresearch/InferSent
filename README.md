@@ -89,7 +89,7 @@ infersent.visualize('A man plays an instrument.', tokenize=True)
 
 
 ## Train model on Natural Language Inference (SNLI)
-To reproduce our results on [SNLI](https://nlp.stanford.edu/projects/snli/), set **W2V_PATH** in *train_nli.py*, then run:
+To reproduce our results on [SNLI](https://nlp.stanford.edu/projects/snli/), set **--word_emb_path** param in *train_nli.py*, then run:
 ```bash
 python train_nli.py
 ```
