@@ -289,7 +289,7 @@ while not stop_training and epoch <= params.n_epochs:
     epoch += 1
 
 # Run best model on test set.
-nli_net.load_state_dict(os.path.join(params.outputdir, params.outputmodelname))
+nli_net.load_state_dict(torch.load(os.path.join(params.outputdir, params.outputmodelname)))
 
 print('\nTEST : Epoch {0}'.format(epoch))
 evaluate(1e6, 'valid', True)
