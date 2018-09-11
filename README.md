@@ -91,7 +91,7 @@ infersent.visualize('A man plays an instrument.', tokenize=True)
 ## Train model on Natural Language Inference (SNLI)
 To reproduce our results on [SNLI](https://nlp.stanford.edu/projects/snli/), run:
 ```bash
-python train_nli.py
+python train_nli.py --word_emb_path '<path to word embeddings>'
 ```
 You should obtain a dev accuracy of 85 and a test accuracy of **[84.5](https://nlp.stanford.edu/projects/snli/)** with the default setting.
 
