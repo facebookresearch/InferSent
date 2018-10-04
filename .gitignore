@@ -1,6 +1,12 @@
-dataset/GloVe
-dataset/MultiNLI
-dataset/SNLI
-encoder/infersent.allnli.pickle
+# SentEval data and .pyc files
 
-*.swp
+
+
+# python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# log files
+*.log
+*.txt
