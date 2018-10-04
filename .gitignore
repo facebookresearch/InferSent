@@ -10,3 +10,13 @@ __pycache__/
 # log files
 *.log
 *.txt
+
+# pickle files
+*.pkl
+
+# datasets
+dataset/SNLI/
+dataset/MultiNLI/
+dataset/AllNLI/
+dataset/GloVe
+dataset/fastText
