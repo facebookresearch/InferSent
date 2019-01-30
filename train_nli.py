@@ -119,8 +119,7 @@ print(nli_net)
 
 # loss
 weight = torch.FloatTensor(params.n_classes).fill_(1)
-loss_fn = nn.CrossEntropyLoss(weight=weight)
-loss_fn.size_average = False
+loss_fn = nn.CrossEntropyLoss(weight=weight, reduction='sum')
 
 # optimizer
 optim_fn, optim_params = get_optimizer(params.optimizer)
@@ -175,12 +174,12 @@ def trainepoch(epoch):
         output = nli_net((s1_batch, s1_len), (s2_batch, s2_len))
 
         pred = output.data.max(1)[1]
-        correct += pred.long().eq(tgt_batch.data.long()).cpu().sum()
+        correct += pred.long().eq(tgt_batch.data.long()).cpu().sum().item()
         assert len(pred) == len(s1[stidx:stidx + params.batch_size])
 
         # loss
         loss = loss_fn(output, tgt_batch)
-        all_costs.append(loss.data[0])
+        all_costs.append(loss.item())
         words_count += (s1_batch.nelement() + s2_batch.nelement()) / params.word_emb_dim
 
         # backward
@@ -194,7 +193,7 @@ def trainepoch(epoch):
         for p in nli_net.parameters():
             if p.requires_grad:
                 p.grad.data.div_(k)  # divide by the actual batch size
-                total_norm += p.grad.data.norm() ** 2
+                total_norm += (p.grad.data.norm() ** 2).item()
         total_norm = np.sqrt(total_norm)
 
         if total_norm > params.max_norm:
@@ -245,7 +244,7 @@ def evaluate(epoch, eval_type='valid', final_eval=False):
         output = nli_net((s1_batch, s1_len), (s2_batch, s2_len))
 
         pred = output.data.max(1)[1]
-        correct += pred.long().eq(tgt_batch.data.long()).cpu().sum()
+        correct += pred.long().eq(tgt_batch.data.long()).cpu().sum().item()
 
     # save model
     eval_acc = round(100 * correct / len(s1), 2)
