@@ -21,15 +21,12 @@ from mutils import get_optimizer
 from models import NLINet
 
 
-W2V_PATH = "dataset/GloVe/glove.840B.300d.txt"
-
-
 parser = argparse.ArgumentParser(description='NLI training')
 # paths
 parser.add_argument("--nlipath", type=str, default='dataset/SNLI/', help="NLI data path (SNLI or MultiNLI)")
 parser.add_argument("--outputdir", type=str, default='savedir/', help="Output directory")
 parser.add_argument("--outputmodelname", type=str, default='model.pickle')
-
+parser.add_argument("--word_emb_path", type=str, default="dataset/GloVe/glove.840B.300d.txt", help="word embedding file path")
 
 # training
 parser.add_argument("--n_epochs", type=int, default=20)
@@ -55,6 +52,8 @@ parser.add_argument("--pool_type", type=str, default='max', help="max or mean")
 parser.add_argument("--gpu_id", type=int, default=3, help="GPU ID")
 parser.add_argument("--seed", type=int, default=1234, help="seed")
 
+# data
+parser.add_argument("--word_emb_dim", type=int, default=300, help="word embedding dimension")
 
 params, _ = parser.parse_known_args()
 
@@ -79,15 +78,13 @@ DATA
 train, valid, test = get_nli(params.nlipath)
 word_vec = build_vocab(train['s1'] + train['s2'] +
                        valid['s1'] + valid['s2'] +
-                       test['s1'] + test['s2'], W2V_PATH)
+                       test['s1'] + test['s2'], params.word_emb_path)
 
 for split in ['s1', 's2']:
     for data_type in ['train', 'valid', 'test']:
         eval(data_type)[split] = np.array([['<s>'] +
             [word for word in sent.split() if word in word_vec] +
             ['</s>'] for sent in eval(data_type)[split]])
-
-params.word_emb_dim = 300
 
 
 """
@@ -167,9 +164,9 @@ def trainepoch(epoch):
     for stidx in range(0, len(s1), params.batch_size):
         # prepare batch
         s1_batch, s1_len = get_batch(s1[stidx:stidx + params.batch_size],
-                                     word_vec)
+                                     word_vec, params.word_emb_dim)
         s2_batch, s2_len = get_batch(s2[stidx:stidx + params.batch_size],
-                                     word_vec)
+                                     word_vec, params.word_emb_dim)
         s1_batch, s2_batch = Variable(s1_batch.cuda()), Variable(s2_batch.cuda())
         tgt_batch = Variable(torch.LongTensor(target[stidx:stidx + params.batch_size])).cuda()
         k = s1_batch.size(1)  # actual batch size
@@ -239,8 +236,8 @@ def evaluate(epoch, eval_type='valid', final_eval=False):
 
     for i in range(0, len(s1), params.batch_size):
         # prepare batch
-        s1_batch, s1_len = get_batch(s1[i:i + params.batch_size], word_vec)
-        s2_batch, s2_len = get_batch(s2[i:i + params.batch_size], word_vec)
+        s1_batch, s1_len = get_batch(s1[i:i + params.batch_size], word_vec, params.word_emb_dim)
+        s2_batch, s2_len = get_batch(s2[i:i + params.batch_size], word_vec, params.word_emb_dim)
         s1_batch, s2_batch = Variable(s1_batch.cuda()), Variable(s2_batch.cuda())
         tgt_batch = Variable(torch.LongTensor(target[i:i + params.batch_size])).cuda()
 
@@ -263,7 +260,7 @@ def evaluate(epoch, eval_type='valid', final_eval=False):
             print('saving model at epoch {0}'.format(epoch))
             if not os.path.exists(params.outputdir):
                 os.makedirs(params.outputdir)
-            torch.save(nli_net, os.path.join(params.outputdir,
+            torch.save(nli_net.state_dict(), os.path.join(params.outputdir,
                        params.outputmodelname))
             val_acc_best = eval_acc
         else:
@@ -292,13 +289,11 @@ while not stop_training and epoch <= params.n_epochs:
     epoch += 1
 
 # Run best model on test set.
-del nli_net
-nli_net = torch.load(os.path.join(params.outputdir, params.outputmodelname))
+nli_net.load_state_dict(torch.load(os.path.join(params.outputdir, params.outputmodelname)))
 
 print('\nTEST : Epoch {0}'.format(epoch))
 evaluate(1e6, 'valid', True)
 evaluate(0, 'test', True)
 
 # Save encoder instead of full model
-torch.save(nli_net.encoder,
-           os.path.join(params.outputdir, params.outputmodelname + '.encoder'))
+torch.save(nli_net.encoder.state_dict(), os.path.join(params.outputdir, params.outputmodelname + '.encoder.pkl'))
