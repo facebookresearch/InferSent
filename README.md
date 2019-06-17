@@ -28,7 +28,7 @@ mkdir dataset/GloVe
 curl -Lo dataset/GloVe/glove.840B.300d.zip http://nlp.stanford.edu/data/glove.840B.300d.zip
 unzip dataset/GloVe/glove.840B.300d.zip -d dataset/GloVe/
 mkdir dataset/fastText
-curl -Lo dataset/fastText/crawl-300d-2M.vec.zip https://dl.fbaipublicfiles.com/fasttext/vectors-english/crawl-300d-2M-subword.zip
+curl -Lo dataset/fastText/crawl-300d-2M.vec.zip https://dl.fbaipublicfiles.com/fasttext/vectors-english/crawl-300d-2M.vec.zip
 unzip dataset/fastText/crawl-300d-2M.vec.zip -d dataset/fastText/
 ```
 
