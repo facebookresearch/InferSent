@@ -4,7 +4,7 @@
 
 We provide our pre-trained English sentence encoder [our paper](https://arxiv.org/abs/1705.02364) and our [SentEval](https://github.com/facebookresearch/SentEval) evaluation toolkit.
 
-**Recent changes**: Added infersent2 model trained on fastText vectors and added max-pool option.
+**Recent changes**: Removed train_nli.py and only kept pretrained models for simplicity. Reason is I do not have time anymore to maintain the repo beyond simple scripts to get sentence embeddings.
 
 ## Dependencies
 
@@ -24,20 +24,21 @@ This will download and preprocess SNLI/MultiNLI datasets. For MacOS, you may hav
 
 Download [GloVe](https://nlp.stanford.edu/projects/glove/) (V1) or [fastText](https://fasttext.cc/docs/en/english-vectors.html) (V2) vectors:
 ```bash
-mkdir dataset/GloVe
-curl -Lo dataset/GloVe/glove.840B.300d.zip http://nlp.stanford.edu/data/glove.840B.300d.zip
-unzip dataset/GloVe/glove.840B.300d.zip -d dataset/GloVe/
-mkdir dataset/fastText
-curl -Lo dataset/fastText/crawl-300d-2M.vec.zip https://dl.fbaipublicfiles.com/fasttext/vectors-english/crawl-300d-2M.vec.zip
-unzip dataset/fastText/crawl-300d-2M.vec.zip -d dataset/fastText/
+mkdir GloVe
+curl -Lo GloVe/glove.840B.300d.zip http://nlp.stanford.edu/data/glove.840B.300d.zip
+unzip GloVe/glove.840B.300d.zip -d GloVe/
+mkdir fastText
+curl -Lo fastText/crawl-300d-2M.vec.zip https://dl.fbaipublicfiles.com/fasttext/vectors-english/crawl-300d-2M.vec.zip
+unzip fastText/crawl-300d-2M.vec.zip -d fastText/
 ```
 
 ## Use our sentence encoder
-We provide a simple interface to encode English sentences. **See [**encoder/demo.ipynb**](https://github.com/facebookresearch/InferSent/blob/master/encoder/demo.ipynb)
+We provide a simple interface to encode English sentences. **See [**demo.ipynb**](https://github.com/facebookresearch/InferSent/blob/master/demo.ipynb)
 for a practical example.** Get started with the following steps:
 
 *0.0) Download our InferSent models (V1 trained with GloVe, V2 trained with fastText)[147MB]:*
 ```bash
+mkdir encoder
 curl -Lo encoder/infersent1.pkl https://dl.fbaipublicfiles.com/infersent/infersent1.pkl
 curl -Lo encoder/infersent2.pkl https://dl.fbaipublicfiles.com/infersent/infersent2.pkl
 ```
@@ -86,14 +87,6 @@ We provide a function to visualize the importance of each word in the encoding o
 infersent.visualize('A man plays an instrument.', tokenize=True)
 ```
 ![Model](https://dl.fbaipublicfiles.com/infersent/visualization.png)
-
-
-## Train model on Natural Language Inference (SNLI)
-To reproduce our results on [SNLI](https://nlp.stanford.edu/projects/snli/), run:
-```bash
-python train_nli.py --word_emb_path '<path to word embeddings>'
-```
-You should obtain a dev accuracy of 85 and a test accuracy of **[84.5](https://nlp.stanford.edu/projects/snli/)** with the default setting.
 
 ## Evaluate the encoder on transfer tasks
 To evaluate the model on transfer tasks, see [SentEval](https://github.com/facebookresearch/SentEval/tree/master/examples). Be mindful to choose the same tokenization used for training the encoder. You should obtain the following test results for the baselines and the InferSent models:
