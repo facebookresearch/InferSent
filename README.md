@@ -2,7 +2,7 @@
 
 *InferSent* is a *sentence embeddings* method that provides semantic representations for English sentences. It is trained on natural language inference data and generalizes well to many different tasks.
 
-We provide our pre-trained English sentence encoder [our paper](https://arxiv.org/abs/1705.02364) and our [SentEval](https://github.com/facebookresearch/SentEval) evaluation toolkit.
+We provide our pre-trained English sentence encoder from [our paper](https://arxiv.org/abs/1705.02364) and our [SentEval](https://github.com/facebookresearch/SentEval) evaluation toolkit.
 
 **Recent changes**: Removed train_nli.py and only kept pretrained models for simplicity. Reason is I do not have time anymore to maintain the repo beyond simple scripts to get sentence embeddings.
 
