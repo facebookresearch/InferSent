@@ -104,7 +104,7 @@ class InferSent(nn.Module):
         assert hasattr(self, 'w2v_path'), 'w2v path not set'
         # create word_vec with w2v vectors
         word_vec = {}
-        with open(self.w2v_path) as f:
+        with open(self.w2v_path, encoding='utf-8') as f:
             for line in f:
                 word, vec = line.split(' ', 1)
                 if word in word_dict:
@@ -117,7 +117,7 @@ class InferSent(nn.Module):
         # create word_vec with k first w2v vectors
         k = 0
         word_vec = {}
-        with open(self.w2v_path) as f:
+        with open(self.w2v_path, encoding='utf-8') as f:
             for line in f:
                 word, vec = line.split(' ', 1)
                 if k <= K:
