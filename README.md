@@ -44,7 +44,7 @@ import nltk
 nltk.download('punkt')
 ```
 
-*1) [Load our pre-trained model](https://github.com/facebookresearch/InferSent/blob/master/encoder/demo.ipynb) (in encoder/):*
+*1) [Load our pre-trained model](https://github.com/facebookresearch/InferSent/blob/master/demo.ipynb):*
 ```python
 from models import InferSent
 V = 2
