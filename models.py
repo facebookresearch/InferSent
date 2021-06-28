@@ -233,7 +233,7 @@ class InferSent(nn.Module):
                     'gpu' if self.is_cuda() else 'cpu', bsize))
         return embeddings
 
-    def visualize(self, sent, tokenize=True):
+    def weigh_words(self, sent, tokenize=True):
 
         sent = sent.split() if not tokenize else self.tokenize(sent)
         sent = [[self.bos] + [word for word in sent if word in self.word_vec] + [self.eos]]
@@ -252,14 +252,19 @@ class InferSent(nn.Module):
         idxs = idxs.data.cpu().numpy()
         argmaxs = [np.sum((idxs == k)) for k in range(len(sent[0]))]
 
-        # visualize model
-        import matplotlib.pyplot as plt
-        x = range(len(sent[0]))
+        # Return the importance of words
+        x = sent[0]
         y = [100.0 * n / np.sum(argmaxs) for n in argmaxs]
-        plt.xticks(x, sent[0], rotation=45)
+        return x, y, output, idxs
+    
+    def visualize(self, sent, tokenize=True):
+        import matplotlib.pyplot as plt
+        x_tick_labels, y, output, idxs = self.weigh_words(sent, tokenize)
+        x = range(len(x_tick_labels))
+        plt.xticks(x, x_tick_labels, rotation=45)
         plt.bar(x, y)
         plt.ylabel('%')
         plt.title('Visualisation of words importance')
         plt.show()
-
         return output, idxs
+
